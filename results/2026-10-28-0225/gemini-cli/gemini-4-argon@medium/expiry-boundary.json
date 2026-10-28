@@ -1,0 +1,51 @@
+{
+  "run": "2026-10-28-0225",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "expiry-boundary",
+  "task_version": "e3d9cecb",
+  "cli_version": "1.4.8",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 106305,
+  "tokens_input": 35702,
+  "tokens_output": 5975,
+  "tokens_cache_read": 77343,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 4035,
+  "quota_5h_before": 4.319,
+  "quota_5h_after": 4.354,
+  "quota_week_before": 2.555,
+  "quota_week_after": 2.564,
+  "quota_confidence": "ok",
+  "why": "106s over 50s",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "Bug report: an item that expires tomorrow shows 0 days left in the afternoon. Expiry dates are UTC calendar dates, and an item is good through the end of its expiry date. Make `daysLeft(item, now)` the number of UTC calendar days from the UTC date of `now` to the expiry date (tomorrow is 1, today is 0, yesterday is -1, at any time of day), and make `isExpired` true only when `daysLeft` is below 0.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Updated `daysLeft` to compute the difference in UTC calendar days between `now` and `item.expires`, and updated `isExpired` to return true only when `daysLeft` is less than 0.",
+    "changed": [
+      "src/expiry.js"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "day boundaries right at every time of day"
+  },
+  "changed": [
+    "src/expiry.js"
+  ],
+  "diff": "diff --git a/src/expiry.js b/src/expiry.js\nindex 1ad98bd..3ac64a3 100644\n--- a/src/expiry.js\n+++ b/src/expiry.js\n@@ -3,7 +3,10 @@ import { log } from \"./log.js\";\n const DAY = 86400000;\n \n export function daysLeft(item, now = Date.now()) {\n-  return Math.floor((Date.parse(item.expires) - now) / DAY);\n+  return (\n+    Math.floor(Date.parse(item.expires) / DAY) -\n+    Math.floor(new Date(now).getTime() / DAY)\n+  );\n }\n \n export function isExpired(item, now = Date.now()) {\n@@ -12,5 +15,5 @@ export function isExpired(item, now = Date.now()) {\n     log.warn(\"item expired\", { id: item.id, days: left });\n     return true;\n   }\n-  return left === 0;\n+  return false;\n }\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": false,
+  "runner_started": "2026-10-28T02:25:42.046Z",
+  "runner_commit": "918c00f"
+}

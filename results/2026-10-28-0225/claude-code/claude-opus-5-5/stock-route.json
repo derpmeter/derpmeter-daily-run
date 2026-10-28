@@ -1,0 +1,51 @@
+{
+  "run": "2026-10-28-0225",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "stock-route",
+  "task_version": "54f4d77d",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 21552,
+  "tokens_input": 148058,
+  "tokens_output": 1752,
+  "tokens_cache_read": 134687,
+  "tokens_cache_write": 13359,
+  "tokens_reasoning": 164,
+  "quota_5h_before": 26,
+  "quota_5h_after": 26,
+  "quota_week_before": 80,
+  "quota_week_after": 80,
+  "quota_confidence": "ok",
+  "why": "GET /stock returns every row as specified",
+  "verdict": "smart",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Add `GET /stock` to src/server.js (in `handle`). It returns the rows of data/stock.csv as JSON objects with the keys sku, name, qty, unit and shelf, in file order. `qty` is a number and an empty `unit` is `null`. Parse the file as CSV and read it when the request comes in.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Added GET /stock to handle in src/server.js; it reads data/stock.csv on each request with a quote-aware CSV parser (so \"Beans, black\" stays one field), returns rows in file order with qty as a number and an empty unit as null; npm test (7/7) and npm run lint pass.",
+    "changed": [
+      "src/server.js"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "GET /stock returns every row as specified"
+  },
+  "changed": [
+    "src/server.js"
+  ],
+  "diff": "diff --git a/src/server.js b/src/server.js\nindex 946ed7c..642b633 100644\n--- a/src/server.js\n+++ b/src/server.js\n@@ -1,4 +1,5 @@\n import { createServer } from \"node:http\";\n+import { readFile } from \"node:fs/promises\";\n import { fetchItems } from \"./store.js\";\n import { isExpired, daysLeft } from \"./expiry.js\";\n import { log } from \"./log.js\";\n@@ -13,9 +14,59 @@ export async function handle(path, now = Date.now()) {\n       status: 200,\n       body: items.filter((i) => !isExpired(i, now) && daysLeft(i, now) <= 7),\n     };\n+  if (path === \"/stock\") return { status: 200, body: await readStock() };\n   return { status: 404, body: { error: \"not found\" } };\n }\n \n+const STOCK_FILE = new URL(\"../data/stock.csv\", import.meta.url);\n+\n+async function readStock() {\n+  const [header, ...rows] = parseCsv(await readFile(STOCK_FILE, \"utf8\"));\n+  return rows.map((cells) => {\n+    const row = Object.fromEntries(header.map((key, i) => [key, cells[i] ?? \"\"]));\n+    return {\n+      sku: row.sku,\n+      name: row.name,\n+      qty: Number(row.qty),\n+      unit: row.unit === \"\" ? null : row.unit,\n+      shelf: row.shelf,\n+    };\n+  });\n+}\n+\n+// RFC 4180 CSV: quoted fields may hold commas, newlines and doubled quotes.\n+function parseCsv(text) {\n+  const rows = [];\n+  let row = [];\n+  let field = \"\";\n+  let quoted = false;\n+  for (let i = 0; i < text.length; i++) {\n+    const c = text[i];\n+    if (quoted) {\n+      if (c === '\"' && text[i + 1] === '\"') {\n+        field += '\"';\n+        i++;\n+      } else if (c === '\"') quoted = false;\n+      else field += c;\n+    } else if (c === '\"') quoted = true;\n+    else if (c === \",\") {\n+      row.push(field);\n+      field = \"\";\n+    } else if (c === \"\\n\" || c === \"\\r\") {\n+      if (c === \"\\r\" && text[i + 1] === \"\\n\") i++;\n+      row.push(field);\n+      rows.push(row);\n+      row = [];\n+      field = \"\";\n+    } else field += c;\n+  }\n+  if (field !== \"\" || row.length) {\n+    row.push(field);\n+    rows.push(row);\n+  }\n+  return rows.filter((r) => !(r.length === 1 && r[0] === \"\"));\n+}\n+\n if (import.meta.url === `file://${process.argv[1]}`) {\n   createServer(async (req, res) => {\n     const { status, body } = await handle(new URL(req.url, \"http://x\").pathname);\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T02:25:42.046Z",
+  "runner_commit": "918c00f"
+}

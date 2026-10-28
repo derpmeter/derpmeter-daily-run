@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0225",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-sonnet-5-5",
+  "effort": "",
+  "task": "expiring-days",
+  "task_version": "af1029e7",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 22067,
+  "tokens_input": 93775,
+  "tokens_output": 1078,
+  "tokens_cache_read": 68824,
+  "tokens_cache_write": 24943,
+  "tokens_reasoning": 132,
+  "quota_5h_before": 26,
+  "quota_5h_after": 27,
+  "quota_week_before": 80,
+  "quota_week_after": 80,
+  "quota_confidence": "ok",
+  "why": "helper, ?days, default and validation all right",
+  "verdict": "smart",
+  "model_id": "claude-sonnet-5-5",
+  "prompt": "Add and export `isExpiringSoon(item, now, days = 3)` in src/expiry.js: true when the item has not expired and expires within `days` days (use `daysLeft`). Then make `GET /expiring` use it and accept `?days=N` (default 7, so the current behavior stays). `days` must be a whole number from 0 to 365; anything else answers status 400 with a JSON `error`. `handle(path, now)` receives the path with its query string.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Added `isExpiringSoon` to src/expiry.js and made `GET /expiring` use it, with `?days=N` defaulting to 7 and 400 plus a JSON `error` for invalid values. `npm test` and `npm run lint` both pass. I didn't add tests for the new `days` parameter, since the task didn't ask for test changes. I didn't touch the CHANGELOG, because this isn't a release.",
+    "changed": [
+      "src/expiry.js",
+      "src/server.js"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "helper, ?days, default and validation all right"
+  },
+  "changed": [
+    "src/expiry.js",
+    "src/server.js"
+  ],
+  "diff": "diff --git a/src/expiry.js b/src/expiry.js\nindex 1ad98bd..519c853 100644\n--- a/src/expiry.js\n+++ b/src/expiry.js\n@@ -14,3 +14,7 @@ export function isExpired(item, now = Date.now()) {\n   }\n   return left === 0;\n }\n+\n+export function isExpiringSoon(item, now = Date.now(), days = 3) {\n+  return !isExpired(item, now) && daysLeft(item, now) <= days;\n+}\ndiff --git a/src/server.js b/src/server.js\nindex 946ed7c..89441ba 100644\n--- a/src/server.js\n+++ b/src/server.js\n@@ -1,24 +1,27 @@\n import { createServer } from \"node:http\";\n import { fetchItems } from \"./store.js\";\n-import { isExpired, daysLeft } from \"./expiry.js\";\n+import { isExpiringSoon } from \"./expiry.js\";\n import { log } from \"./log.js\";\n \n const PORT = Number(process.env.PORT || 4300);\n \n export async function handle(path, now = Date.now()) {\n-  const items = await fetchItems();\n-  if (path === \"/items\") return { status: 200, body: items };\n-  if (path === \"/expiring\")\n-    return {\n-      status: 200,\n-      body: items.filter((i) => !isExpired(i, now) && daysLeft(i, now) <= 7),\n-    };\n+  const url = new URL(path, \"http://x\");\n+  if (url.pathname === \"/items\") return { status: 200, body: await fetchItems() };\n+  if (url.pathname === \"/expiring\") {\n+    const raw = url.searchParams.get(\"days\") ?? \"7\";\n+    const days = Number(raw);\n+    if (!/^\\d+$/.test(raw) || days > 365)\n+      return { status: 400, body: { error: \"days must be a whole number from 0 to 365\" } };\n+    const items = await fetchItems();\n+    return { status: 200, body: items.filter((i) => isExpiringSoon(i, now, days)) };\n+  }\n   return { status: 404, body: { error: \"not found\" } };\n }\n \n if (import.meta.url === `file://${process.argv[1]}`) {\n   createServer(async (req, res) => {\n-    const { status, body } = await handle(new URL(req.url, \"http://x\").pathname);\n+    const { status, body } = await handle(req.url);\n     res.writeHead(status, { \"content-type\": \"application/json\" });\n     res.end(JSON.stringify(body));\n   }).listen(PORT, () => log.info(\"listening\", { port: PORT }));\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T02:25:42.046Z",
+  "runner_commit": "918c00f"
+}

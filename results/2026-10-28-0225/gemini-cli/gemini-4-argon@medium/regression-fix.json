@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0225",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "regression-fix",
+  "task_version": "5cdf73ef",
+  "cli_version": "1.4.8",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 55255,
+  "tokens_input": 23398,
+  "tokens_output": 1938,
+  "tokens_cache_read": 48948,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 910,
+  "quota_5h_before": 5.572,
+  "quota_5h_after": 5.542,
+  "quota_week_before": 3.473,
+  "quota_week_after": 2.984,
+  "quota_confidence": "ok",
+  "why": "55s over 50s",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "Bug report: `findByTag` misses items that have the tag but not as their first tag. Fix it, and add a regression test to tests/items.test.js that fails on the old code.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Updated `findByTag` to check all tags on an item via `includes` instead of only the first tag, and added a regression test in `tests/items.test.js`.",
+    "changed": [
+      "src/items.js",
+      "tests/items.test.js"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "fixed, and the new test catches the bug"
+  },
+  "changed": [
+    "src/items.js",
+    "tests/items.test.js"
+  ],
+  "diff": "diff --git a/src/items.js b/src/items.js\nindex 284fa14..1d65c87 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -2,7 +2,7 @@ import { fetchItems, saveItem } from \"./store.js\";\n \n export async function findByTag(tag) {\n   const items = await fetchItems();\n-  return items.filter((item) => item.tags[0] === tag);\n+  return items.filter((item) => item.tags.includes(tag));\n }\n \n export async function addItem(item) {\ndiff --git a/tests/items.test.js b/tests/items.test.js\nindex 5fd1ed5..aa9510c 100644\n--- a/tests/items.test.js\n+++ b/tests/items.test.js\n@@ -13,3 +13,9 @@ test(\"addItem assigns the next id\", async () => {\n   assert.equal(item.id, 5);\n   assert.equal((await fetchItems()).length, 5);\n });\n+\n+test(\"findByTag matches tags that are not first\", async () => {\n+  await addItem({ name: \"butter\", qty: 1, unit: \"pack\", tags: [\"dairy\", \"fridge\"] });\n+  const names = (await findByTag(\"fridge\")).map((i) => i.name);\n+  assert.deepEqual(names, [\"milk\", \"egg\", \"yogurt\", \"butter\"]);\n+});\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": false,
+  "runner_started": "2026-10-28T02:25:42.046Z",
+  "runner_commit": "918c00f"
+}

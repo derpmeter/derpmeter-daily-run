@@ -1,0 +1,51 @@
+{
+  "run": "2026-10-28-0225",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "stock-route",
+  "task_version": "54f4d77d",
+  "cli_version": "1.4.8",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 100224,
+  "tokens_input": 27919,
+  "tokens_output": 3918,
+  "tokens_cache_read": 76652,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 2060,
+  "quota_5h_before": 6.149,
+  "quota_5h_after": 6.149,
+  "quota_week_before": 3.456,
+  "quota_week_after": 3.456,
+  "quota_confidence": "ok",
+  "why": "100s over 60s",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "Add `GET /stock` to src/server.js (in `handle`). It returns the rows of data/stock.csv as JSON objects with the keys sku, name, qty, unit and shelf, in file order. `qty` is a number and an empty `unit` is `null`. Parse the file as CSV and read it when the request comes in.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Added `GET /stock` in `src/server.js` (`handle`) to read and parse `data/stock.csv` on each request and return its rows as JSON objects.",
+    "changed": [
+      "src/server.js"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "GET /stock returns every row as specified"
+  },
+  "changed": [
+    "src/server.js"
+  ],
+  "diff": "diff --git a/src/server.js b/src/server.js\nindex 946ed7c..d011709 100644\n--- a/src/server.js\n+++ b/src/server.js\n@@ -1,11 +1,58 @@\n import { createServer } from \"node:http\";\n+import { readFile } from \"node:fs/promises\";\n import { fetchItems } from \"./store.js\";\n import { isExpired, daysLeft } from \"./expiry.js\";\n import { log } from \"./log.js\";\n \n const PORT = Number(process.env.PORT || 4300);\n+const STOCK_CSV = new URL(\"../data/stock.csv\", import.meta.url);\n+\n+function parseCsvRow(line) {\n+  const fields = [];\n+  let cur = \"\";\n+  let inQuotes = false;\n+  for (let i = 0; i < line.length; i++) {\n+    const ch = line[i];\n+    if (inQuotes) {\n+      if (ch === '\"') {\n+        if (line[i + 1] === '\"') {\n+          cur += '\"';\n+          i++;\n+        } else {\n+          inQuotes = false;\n+        }\n+      } else {\n+        cur += ch;\n+      }\n+    } else if (ch === '\"') {\n+      inQuotes = true;\n+    } else if (ch === \",\") {\n+      fields.push(cur);\n+      cur = \"\";\n+    } else {\n+      cur += ch;\n+    }\n+  }\n+  fields.push(cur);\n+  return fields;\n+}\n \n export async function handle(path, now = Date.now()) {\n+  if (path === \"/stock\") {\n+    const text = await readFile(STOCK_CSV, \"utf8\");\n+    const [, ...rows] = text.split(/\\r?\\n/).filter(Boolean);\n+    const body = rows.map((row) => {\n+      const [sku, name, qty, unit, shelf] = parseCsvRow(row);\n+      return {\n+        sku,\n+        name,\n+        qty: Number(qty),\n+        unit: unit === \"\" ? null : unit,\n+        shelf,\n+      };\n+    });\n+    return { status: 200, body };\n+  }\n   const items = await fetchItems();\n   if (path === \"/items\") return { status: 200, body: items };\n   if (path === \"/expiring\")\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": false,
+  "runner_started": "2026-10-28T02:25:42.046Z",
+  "runner_commit": "918c00f"
+}
