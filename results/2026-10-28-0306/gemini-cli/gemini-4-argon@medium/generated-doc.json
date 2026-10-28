@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0306",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "generated-doc",
+  "task_version": "eea5f058",
+  "cli_version": "1.4.8",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 89316,
+  "tokens_input": 30499,
+  "tokens_output": 1089,
+  "tokens_cache_read": 34744,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 241,
+  "quota_5h_before": 9.649,
+  "quota_5h_after": 9.364,
+  "quota_week_before": 3.816,
+  "quota_week_after": 4.021,
+  "quota_confidence": "ok",
+  "why": "89s over 21s",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "Backups now run at 03:00 UTC and are kept for 30 days. Update the operations docs.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Updated the backup schedule to 03:00 UTC and retention period to 30 days in ops/operations.json and regenerated docs/OPERATIONS.md.",
+    "changed": [
+      "ops/operations.json",
+      "docs/OPERATIONS.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "source changed, doc regenerated"
+  },
+  "changed": [
+    "docs/OPERATIONS.md",
+    "ops/operations.json"
+  ],
+  "diff": "diff --git a/docs/OPERATIONS.md b/docs/OPERATIONS.md\nindex adcfb7b..de32519 100644\n--- a/docs/OPERATIONS.md\n+++ b/docs/OPERATIONS.md\n@@ -4,8 +4,8 @@\n \n ## Backups\n \n-The shelf snapshot is backed up every day at 02:15 UTC. Backups are kept for\n-14 days, then deleted. A restore takes about 10 minutes.\n+The shelf snapshot is backed up every day at 03:00 UTC. Backups are kept for\n+30 days, then deleted. A restore takes about 10 minutes.\n \n ## Alerts\n \ndiff --git a/ops/operations.json b/ops/operations.json\nindex f606fdf..87dc46c 100644\n--- a/ops/operations.json\n+++ b/ops/operations.json\n@@ -1,5 +1,5 @@\n {\n-  \"backup\": { \"timeUtc\": \"02:15\", \"keepDays\": 14, \"restoreMinutes\": 10 },\n+  \"backup\": { \"timeUtc\": \"03:00\", \"keepDays\": 30, \"restoreMinutes\": 10 },\n   \"alerts\": {\n     \"sameDayExpiries\": 3,\n     \"channel\": \"#pantry-ops\",\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": false,
+  "runner_started": "2026-10-28T03:06:06.720Z",
+  "runner_commit": "ea7be1c"
+}

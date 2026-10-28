@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0306",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "",
+  "task": "tag-case",
+  "task_version": "6ba11cc4",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 19154,
+  "tokens_input": 68959,
+  "tokens_output": 676,
+  "tokens_cache_read": 50560,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 0,
+  "quota_5h_before": 49,
+  "quota_5h_after": 50,
+  "quota_week_before": 38,
+  "quota_week_after": 38,
+  "quota_confidence": "ok",
+  "why": "tags match in any case, also for new items; fix noted",
+  "verdict": "smart",
+  "model_id": "gpt-6.1-sol",
+  "prompt": "Bug report: `findByTag(\"Fridge\")` returns nothing although milk is in the fridge. Tags should match regardless of letter case.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed case-insensitive tag matching. Mixed-case checks, npm test, and npm run lint all passed.",
+    "changed": [
+      "src/items.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "tags match in any case, also for new items; fix noted"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..8e610cf 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Fix tag lookup to match regardless of letter case.\n - Faster tag lookup.\n \n ## 1.4.2 - 2026-09-30\ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..9d4633e 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -1,9 +1,10 @@\n import { fetchItems, saveItem } from \"./store.js\";\n \n-/** Items that carry `tag`. */\n+/** Items that carry `tag`, ignoring letter case. */\n export async function findByTag(tag) {\n   const items = await fetchItems();\n-  return items.filter((item) => item.tags.includes(tag));\n+  const normalizedTag = tag.toLowerCase();\n+  return items.filter((item) => item.tags.some((itemTag) => itemTag.toLowerCase() === normalizedTag));\n }\n \n /** Adds an item with the next free id. */\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T03:06:06.720Z",
+  "runner_commit": "ea7be1c"
+}
