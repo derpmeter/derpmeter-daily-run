@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0335",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "",
+  "task": "use-stock",
+  "task_version": "bc162767",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 21087,
+  "tokens_input": 69753,
+  "tokens_output": 789,
+  "tokens_cache_read": 34560,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 0,
+  "quota_5h_before": 56,
+  "quota_5h_after": 56,
+  "quota_week_before": 38,
+  "quota_week_after": 39,
+  "quota_confidence": "ok",
+  "why": "uses stock, keeps empty items, conventions kept",
+  "verdict": "smart",
+  "model_id": "gpt-6.1-sol",
+  "prompt": "Add an exported `useItem(id, n = 1)` to src/items.js that takes `n` from the item's `qty` and returns the updated item. Using more than is left, or an unknown id, throws an Error.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Added useItem with quantity validation and error handling. Tests, lint, and targeted checks passed.",
+    "changed": [
+      "src/items.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "uses stock, keeps empty items, conventions kept"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..3b8bb32 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Add `useItem` to consume item quantities while keeping out-of-stock items on the shelf.\n - Faster tag lookup.\n \n ## 1.4.2 - 2026-09-30\ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..403f2c5 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -13,3 +13,15 @@ export async function addItem(item) {\n   const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n   return saveItem({ tags: [], unit: \"\", ...item, id });\n }\n+\n+/** Uses a whole-number quantity of an item and returns the updated item. */\n+export async function useItem(id, n = 1) {\n+  if (!Number.isInteger(n) || n < 0) {\n+    throw new Error(\"Quantity must be a non-negative whole number.\");\n+  }\n+  const items = await fetchItems();\n+  const item = items.find((item) => item.id === id);\n+  if (!item) throw new Error(\"Unknown item id.\");\n+  if (n > item.qty) throw new Error(\"Not enough quantity left.\");\n+  return saveItem({ ...item, qty: item.qty - n });\n+}\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T03:35:21.344Z",
+  "runner_commit": "dafbe33"
+}

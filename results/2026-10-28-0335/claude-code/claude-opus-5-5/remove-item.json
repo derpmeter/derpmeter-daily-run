@@ -1,0 +1,55 @@
+{
+  "run": "2026-10-28-0335",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "remove-item",
+  "task_version": "70bc8923",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 19754,
+  "tokens_input": 98200,
+  "tokens_output": 1720,
+  "tokens_cache_read": 84098,
+  "tokens_cache_write": 14094,
+  "tokens_reasoning": 285,
+  "quota_5h_before": 9,
+  "quota_5h_after": 9,
+  "quota_week_before": 81,
+  "quota_week_after": 81,
+  "quota_confidence": "ok",
+  "why": "removes, never reuses ids, conventions kept",
+  "verdict": "smart",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Add an exported `removeItem(id)` to src/items.js. It takes the item off the shelf and returns `true`, or returns `false` when there is no item with that id.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "I added `removeItem(id)` to src/items.js: it takes the item off the shelf and returns true, or returns false if there's no item with that id. The rules in docs/DATA.md say ids are never reused, but `addItem` picked the next id from the highest id still on the shelf, so removing the newest item would have let its id be handed out again. To stop that, the store now remembers the highest id it has ever stored, and `addItem` gets new ids from it through a new `nextId()`. The store also gained a `deleteItem(id)`, and I added a CHANGELOG entry under Unreleased. `npm test` and `npm run lint` both pass. A quick manual run showed removing item 4 returns true, removing it again returns false, and the next item added gets id 5, not 4.",
+    "changed": [
+      "src/items.js",
+      "src/store.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "removes, never reuses ids, conventions kept"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js",
+    "src/store.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..b72b42b 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Faster tag lookup.\n+- Add `removeItem` to take an item off the shelf.\n \n ## 1.4.2 - 2026-09-30\n \ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..4a3215c 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -1,4 +1,4 @@\n-import { fetchItems, saveItem } from \"./store.js\";\n+import { deleteItem, nextId, saveItem, fetchItems } from \"./store.js\";\n \n /** Items that carry `tag`. */\n export async function findByTag(tag) {\n@@ -9,7 +9,11 @@ export async function findByTag(tag) {\n /** Adds an item with the next free id. */\n export async function addItem(item) {\n   if (!item.name) throw new Error(\"Item needs a name.\");\n-  const items = await fetchItems();\n-  const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n+  const id = await nextId();\n   return saveItem({ tags: [], unit: \"\", ...item, id });\n }\n+\n+/** Takes the item with `id` off the shelf; false if there is none. */\n+export async function removeItem(id) {\n+  return deleteItem(id);\n+}\ndiff --git a/src/store.js b/src/store.js\nindex f3ed7b4..fd3dd89 100644\n--- a/src/store.js\n+++ b/src/store.js\n@@ -6,6 +6,9 @@ const shelf = [\n   { id: 4, name: \"yogurt\", qty: 4, unit: \"cup\", tags: [\"fridge\"], expires: \"2026-10-20\" },\n ];\n \n+// Highest id ever stored. Ids are never reused, even after removal.\n+let highestId = Math.max(0, ...shelf.map((item) => item.id));\n+\n /** Every item on the shelf (copies). */\n export async function fetchItems() {\n   return shelf.map((item) => ({ ...item, tags: [...item.tags] }));\n@@ -16,5 +19,19 @@ export async function saveItem(item) {\n   const i = shelf.findIndex((s) => s.id === item.id);\n   if (i < 0) shelf.push(item);\n   else shelf[i] = item;\n+  highestId = Math.max(highestId, item.id);\n   return item;\n }\n+\n+/** The next id never used by any item, including removed ones. */\n+export async function nextId() {\n+  return highestId + 1;\n+}\n+\n+/** Removes the item with `id`; true if it was on the shelf. */\n+export async function deleteItem(id) {\n+  const i = shelf.findIndex((s) => s.id === id);\n+  if (i < 0) return false;\n+  shelf.splice(i, 1);\n+  return true;\n+}\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T03:35:21.344Z",
+  "runner_commit": "dafbe33"
+}

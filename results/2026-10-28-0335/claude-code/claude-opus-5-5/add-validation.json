@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0335",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "add-validation",
+  "task_version": "694a2882",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 29584,
+  "tokens_input": 133635,
+  "tokens_output": 2718,
+  "tokens_cache_read": 117601,
+  "tokens_cache_write": 16024,
+  "tokens_reasoning": 699,
+  "quota_5h_before": 9,
+  "quota_5h_after": 9,
+  "quota_week_before": 81,
+  "quota_week_after": 81,
+  "quota_confidence": "ok",
+  "why": "rejects bad items, stores good ones by the data rules",
+  "verdict": "smart",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Make `addItem` reject invalid items by throwing an Error, and store valid ones.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "`addItem` now checks each item against the rules in docs/DATA.md and throws an Error if it breaks one. The rules: the name must not be empty, `qty` must be a whole number of 0 or more, the unit must be a single word or empty, tags must be strings, and `expires` must be a real YYYY-MM-DD date if given. Valid items are stored with the name trimmed and lowercased, and the tags lowercased, de-duplicated and sorted. A new id is never one that was used before, even after a removal; previously it could be reused. Any `id` the caller passes is ignored. `npm test` and `npm run lint` pass, and a manual check confirmed each kind of bad input is rejected. I didn't add new tests, because the rules say not to edit `tests/` unless asked. I added a CHANGELOG entry under Unreleased.",
+    "changed": [
+      "src/items.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "rejects bad items, stores good ones by the data rules"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..eab8ebd 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Faster tag lookup.\n+- `addItem` now rejects invalid items with an Error and stores names and tags normalized.\n \n ## 1.4.2 - 2026-09-30\n \ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..69c9617 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -1,15 +1,46 @@\n import { fetchItems, saveItem } from \"./store.js\";\n \n+// Highest id handed out so far, so ids stay unique even after removals.\n+let lastId = 0;\n+\n /** Items that carry `tag`. */\n export async function findByTag(tag) {\n   const items = await fetchItems();\n   return items.filter((item) => item.tags.includes(tag));\n }\n \n-/** Adds an item with the next free id. */\n+// Checks an item against docs/DATA.md and returns it in stored form; throws if invalid.\n+function normalize(item) {\n+  if (!item || typeof item !== \"object\") throw new Error(\"Item must be an object.\");\n+  const { name, qty, unit = \"\", tags = [], expires } = item;\n+  if (typeof name !== \"string\" || !name.trim()) throw new Error(\"Item needs a name.\");\n+  if (!Number.isInteger(qty) || qty < 0)\n+    throw new Error(\"Item qty must be a whole number, 0 or more.\");\n+  if (typeof unit !== \"string\" || !/^[A-Za-z]*$/.test(unit))\n+    throw new Error(\"Item unit must be a word or empty.\");\n+  if (!Array.isArray(tags) || tags.some((t) => typeof t !== \"string\" || !t.trim()))\n+    throw new Error(\"Item tags must be non-empty strings.\");\n+  const out = {\n+    ...item,\n+    name: name.trim().toLowerCase(),\n+    qty,\n+    unit,\n+    tags: [...new Set(tags.map((t) => t.trim().toLowerCase()))].sort(),\n+  };\n+  if (expires !== undefined) {\n+    const m = typeof expires === \"string\" && /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(expires);\n+    const d = m && new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));\n+    if (!d || d.toISOString().slice(0, 10) !== expires)\n+      throw new Error(\"Item expires must be a date written YYYY-MM-DD.\");\n+  }\n+  return out;\n+}\n+\n+/** Validates an item, then adds it with the next free id; throws an Error if invalid. */\n export async function addItem(item) {\n-  if (!item.name) throw new Error(\"Item needs a name.\");\n+  const valid = normalize(item);\n   const items = await fetchItems();\n-  const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n-  return saveItem({ tags: [], unit: \"\", ...item, id });\n+  const id = Math.max(lastId, ...items.map((i) => i.id)) + 1;\n+  lastId = id;\n+  return saveItem({ ...valid, id });\n }\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T03:35:21.344Z",
+  "runner_commit": "dafbe33"
+}

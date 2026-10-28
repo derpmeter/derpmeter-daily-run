@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0335",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "add-validation",
+  "task_version": "694a2882",
+  "cli_version": "1.4.8",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 209648,
+  "tokens_input": 39640,
+  "tokens_output": 9164,
+  "tokens_cache_read": 154864,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 6362,
+  "quota_5h_before": 10.338,
+  "quota_5h_after": 11.639,
+  "quota_week_before": 3.988,
+  "quota_week_after": 4.089,
+  "quota_confidence": "ok",
+  "why": "210s over 40s",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "Make `addItem` reject invalid items by throwing an Error, and store valid ones.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Updated `addItem` to validate items against the Pantry data rules, throw an Error on invalid inputs, and normalize and store valid items.",
+    "changed": [
+      "src/items.js",
+      "CHANGELOG.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "rejects bad items, stores good ones by the data rules"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..efac88b 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Reject invalid items and normalize fields in `addItem`.\n - Faster tag lookup.\n \n ## 1.4.2 - 2026-09-30\ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..e4746c4 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -8,8 +8,34 @@ export async function findByTag(tag) {\n \n /** Adds an item with the next free id. */\n export async function addItem(item) {\n-  if (!item.name) throw new Error(\"Item needs a name.\");\n+  if (!item || typeof item !== \"object\") throw new Error(\"Invalid item.\");\n+  if (typeof item.name !== \"string\" || !item.name.trim()) {\n+    throw new Error(\"Item needs a name.\");\n+  }\n+  if (typeof item.qty !== \"number\" || !Number.isInteger(item.qty) || item.qty < 0) {\n+    throw new Error(\"Invalid quantity.\");\n+  }\n+  const unit = item.unit === undefined ? \"\" : item.unit;\n+  if (typeof unit !== \"string\" || /\\s/.test(unit)) {\n+    throw new Error(\"Invalid unit.\");\n+  }\n+  if (item.tags !== undefined) {\n+    if (!Array.isArray(item.tags) || item.tags.some((t) => typeof t !== \"string\" || !t.trim())) {\n+      throw new Error(\"Invalid tags.\");\n+    }\n+  }\n+  if (item.expires !== undefined) {\n+    if (typeof item.expires !== \"string\" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(item.expires)) {\n+      throw new Error(\"Invalid expiry date.\");\n+    }\n+    const d = new Date(`${item.expires}T00:00:00Z`);\n+    if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== item.expires) {\n+      throw new Error(\"Invalid expiry date.\");\n+    }\n+  }\n+  const name = item.name.trim().toLowerCase();\n+  const tags = [...new Set((item.tags ?? []).map((t) => t.trim().toLowerCase()))].sort();\n   const items = await fetchItems();\n   const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n-  return saveItem({ tags: [], unit: \"\", ...item, id });\n+  return saveItem({ ...item, id, name, unit, tags });\n }\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": false,
+  "runner_started": "2026-10-28T03:35:21.344Z",
+  "runner_commit": "dafbe33"
+}

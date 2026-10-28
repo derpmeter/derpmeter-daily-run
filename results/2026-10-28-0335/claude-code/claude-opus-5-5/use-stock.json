@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0335",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "use-stock",
+  "task_version": "bc162767",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 18706,
+  "tokens_input": 121209,
+  "tokens_output": 1639,
+  "tokens_cache_read": 109137,
+  "tokens_cache_write": 12062,
+  "tokens_reasoning": 423,
+  "quota_5h_before": 9,
+  "quota_5h_after": 9,
+  "quota_week_before": 81,
+  "quota_week_after": 81,
+  "quota_confidence": "ok",
+  "why": "uses stock, keeps empty items, conventions kept",
+  "verdict": "smart",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Add an exported `useItem(id, n = 1)` to src/items.js that takes `n` from the item's `qty` and returns the updated item. Using more than is left, or an unknown id, throws an Error.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Added exported useItem(id, n = 1) to src/items.js. It throws an Error for an unknown id or when n is more than is left, and also when n isn't a whole number of 0 or more (an extra check I added). Items that reach qty 0 stay on the shelf. Tests and lint pass.",
+    "changed": [
+      "src/items.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "uses stock, keeps empty items, conventions kept"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..5173ddc 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Faster tag lookup.\n+- Add `useItem` to take an amount from an item's quantity.\n \n ## 1.4.2 - 2026-09-30\n \ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..b0fa621 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -13,3 +13,13 @@ export async function addItem(item) {\n   const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n   return saveItem({ tags: [], unit: \"\", ...item, id });\n }\n+\n+/** Takes `n` from an item's `qty` and returns the updated item. */\n+export async function useItem(id, n = 1) {\n+  if (!Number.isInteger(n) || n < 0) throw new Error(\"Amount must be a whole number, 0 or more.\");\n+  const items = await fetchItems();\n+  const item = items.find((i) => i.id === id);\n+  if (!item) throw new Error(`No item with id ${id}.`);\n+  if (n > item.qty) throw new Error(`Only ${item.qty} left of item ${id}.`);\n+  return saveItem({ ...item, qty: item.qty - n });\n+}\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T03:35:21.344Z",
+  "runner_commit": "dafbe33"
+}

@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0335",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-sonnet-5-5",
+  "effort": "",
+  "task": "add-validation",
+  "task_version": "694a2882",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 29262,
+  "tokens_input": 123877,
+  "tokens_output": 2279,
+  "tokens_cache_read": 110643,
+  "tokens_cache_write": 13224,
+  "tokens_reasoning": 596,
+  "quota_5h_before": 9,
+  "quota_5h_after": 9,
+  "quota_week_before": 81,
+  "quota_week_after": 81,
+  "quota_confidence": "ok",
+  "why": "rejects bad items, stores good ones by the data rules",
+  "verdict": "smart",
+  "model_id": "claude-sonnet-5-5",
+  "prompt": "Make `addItem` reject invalid items by throwing an Error, and store valid ones.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "addItem now throws Error on invalid items (bad name, qty, unit, tags, expires) and stores valid ones normalized per docs/DATA.md; tests and lint pass.",
+    "changed": [
+      "src/items.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "rejects bad items, stores good ones by the data rules"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..7d2c376 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Faster tag lookup.\n+- `addItem` now throws an Error for invalid items and stores names, tags and units in normalized form.\n \n ## 1.4.2 - 2026-09-30\n \ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..9429952 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -6,10 +6,28 @@ export async function findByTag(tag) {\n   return items.filter((item) => item.tags.includes(tag));\n }\n \n-/** Adds an item with the next free id. */\n+/** Adds a valid item with the next free id; throws an Error if the item is invalid. */\n export async function addItem(item) {\n-  if (!item.name) throw new Error(\"Item needs a name.\");\n+  if (!item || typeof item !== \"object\") throw new Error(\"Item must be an object.\");\n+  if (typeof item.name !== \"string\" || !item.name.trim()) throw new Error(\"Item needs a name.\");\n+  if (!Number.isInteger(item.qty) || item.qty < 0) {\n+    throw new Error(\"Item qty must be a whole number, 0 or more.\");\n+  }\n+  const unit = item.unit ?? \"\";\n+  if (typeof unit !== \"string\") throw new Error(\"Item unit must be a string.\");\n+  const rawTags = item.tags ?? [];\n+  if (!Array.isArray(rawTags) || rawTags.some((t) => typeof t !== \"string\")) {\n+    throw new Error(\"Item tags must be an array of strings.\");\n+  }\n+  const tags = [...new Set(rawTags.map((t) => t.toLowerCase()))].sort();\n+  if (item.expires !== undefined) {\n+    const valid =\n+      typeof item.expires === \"string\" &&\n+      /^\\d{4}-\\d{2}-\\d{2}$/.test(item.expires) &&\n+      new Date(item.expires).toISOString().slice(0, 10) === item.expires;\n+    if (!valid) throw new Error(\"Item expires must be a date written YYYY-MM-DD.\");\n+  }\n   const items = await fetchItems();\n   const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n-  return saveItem({ tags: [], unit: \"\", ...item, id });\n+  return saveItem({ ...item, name: item.name.trim().toLowerCase(), unit, tags, id });\n }\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T03:35:21.344Z",
+  "runner_commit": "dafbe33"
+}

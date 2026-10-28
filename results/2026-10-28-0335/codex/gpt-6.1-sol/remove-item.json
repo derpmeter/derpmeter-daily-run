@@ -1,0 +1,55 @@
+{
+  "run": "2026-10-28-0335",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "",
+  "task": "remove-item",
+  "task_version": "70bc8923",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 28490,
+  "tokens_input": 66577,
+  "tokens_output": 1109,
+  "tokens_cache_read": 48640,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 53,
+  "quota_5h_before": 55,
+  "quota_5h_after": 56,
+  "quota_week_before": 38,
+  "quota_week_after": 38,
+  "quota_confidence": "ok",
+  "why": "removes, never reuses ids, conventions kept",
+  "verdict": "smart",
+  "model_id": "gpt-6.1-sol",
+  "prompt": "Add an exported `removeItem(id)` to src/items.js. It takes the item off the shelf and returns `true`, or returns `false` when there is no item with that id.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Added removeItem(id), returning true when removed and false when absent. Removed IDs are never reused. Tests, lint, and removal checks passed.",
+    "changed": [
+      "src/items.js",
+      "src/store.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "removes, never reuses ids, conventions kept"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js",
+    "src/store.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..002f437 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Add `removeItem(id)` and keep removed item IDs from being reused.\n - Faster tag lookup.\n \n ## 1.4.2 - 2026-09-30\ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..98416e9 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -1,4 +1,4 @@\n-import { fetchItems, saveItem } from \"./store.js\";\n+import { fetchItems, saveItem, allocateItemId, deleteItem } from \"./store.js\";\n \n /** Items that carry `tag`. */\n export async function findByTag(tag) {\n@@ -9,7 +9,11 @@ export async function findByTag(tag) {\n /** Adds an item with the next free id. */\n export async function addItem(item) {\n   if (!item.name) throw new Error(\"Item needs a name.\");\n-  const items = await fetchItems();\n-  const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n+  const id = allocateItemId();\n   return saveItem({ tags: [], unit: \"\", ...item, id });\n }\n+\n+/** Removes an item from the shelf, returning whether it existed. */\n+export async function removeItem(id) {\n+  return deleteItem(id);\n+}\ndiff --git a/src/store.js b/src/store.js\nindex f3ed7b4..0dfbd0e 100644\n--- a/src/store.js\n+++ b/src/store.js\n@@ -5,6 +5,20 @@ const shelf = [\n   { id: 3, name: \"egg\", qty: 6, unit: \"\", tags: [\"fridge\"], expires: \"2026-11-09\" },\n   { id: 4, name: \"yogurt\", qty: 4, unit: \"cup\", tags: [\"fridge\"], expires: \"2026-10-20\" },\n ];\n+let nextId = Math.max(0, ...shelf.map((item) => item.id)) + 1;\n+\n+/** Reserves an id that has never been assigned before. */\n+export function allocateItemId() {\n+  return nextId++;\n+}\n+\n+/** Removes an item by id, returning whether it existed. */\n+export async function deleteItem(id) {\n+  const i = shelf.findIndex((item) => item.id === id);\n+  if (i < 0) return false;\n+  shelf.splice(i, 1);\n+  return true;\n+}\n \n /** Every item on the shelf (copies). */\n export async function fetchItems() {\n@@ -13,6 +27,7 @@ export async function fetchItems() {\n \n /** Adds or replaces an item by id. */\n export async function saveItem(item) {\n+  nextId = Math.max(nextId, item.id + 1);\n   const i = shelf.findIndex((s) => s.id === item.id);\n   if (i < 0) shelf.push(item);\n   else shelf[i] = item;\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T03:35:21.344Z",
+  "runner_commit": "dafbe33"
+}
