@@ -1,0 +1,59 @@
+{
+  "run": "2026-10-28-0509",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-sonnet-5-5",
+  "effort": "",
+  "task": "larder-transfer",
+  "task_version": "a69215e1",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 33352,
+  "tokens_input": 240785,
+  "tokens_output": 3497,
+  "tokens_cache_read": 219500,
+  "tokens_cache_write": 21269,
+  "tokens_reasoning": 1016,
+  "quota_5h_before": 16,
+  "quota_5h_after": 17,
+  "quota_week_before": 82,
+  "quota_week_after": 82,
+  "quota_confidence": "ok",
+  "why": "transfer works with ledger, validation, ids and docs",
+  "verdict": "smart",
+  "model_id": "claude-sonnet-5-5",
+  "prompt": "Add `POST /batches/:id/transfer` with the body `{ \"to\": <location id>, \"qty\": <number> }`. It moves `qty` of the batch to location `to`. Moving the whole batch changes its location; moving part of it splits it: a new batch of the same item, lot, expiry and received date holds the moved part at `to`.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Added POST /batches/:id/transfer (full move changes location; partial move splits into a new batch with adjust movements on both); existing tests and lint pass, no new tests added.",
+    "changed": [
+      "src/domain/batches.js",
+      "src/http/routes/batches.js",
+      "README.md",
+      "docs/API.md",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "transfer works with ledger, validation, ids and docs"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "README.md",
+    "docs/API.md",
+    "src/domain/batches.js",
+    "src/http/routes/batches.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex bb2dd6d..6d7c49b 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Add `POST /batches/:id/transfer` to move stock between locations.\n - Show stock on hand in `GET /items`.\n \n ## 2.3.0 - 2026-10-20\ndiff --git a/README.md b/README.md\nindex 92efcba..3f4f9ba 100644\n--- a/README.md\n+++ b/README.md\n@@ -17,6 +17,7 @@ Current version: 2.3.0.\n - `GET /items`, `GET /items/:id`: items with stock on hand.\n - `GET /batches`, `GET /batches/:id`: batches with their movements.\n - `POST /batches/:id/waste`: record waste from a batch.\n+- `POST /batches/:id/transfer`: move some or all of a batch to another location.\n - `POST /orders`, `GET /orders/:id`, `POST /orders/:id/send`,\n   `POST /orders/:id/receive`, `POST /orders/:id/cancel`: purchase orders.\n - `POST /recipes/:id/cook`: cook portions of a recipe.\ndiff --git a/docs/API.md b/docs/API.md\nindex e70cef4..753d2f8 100644\n--- a/docs/API.md\n+++ b/docs/API.md\n@@ -15,3 +15,13 @@ language.\n \n Messages exist in English (`en`) and Korean (`ko`), in\n `src/i18n/messages.js`. The server answers in `LARDER_LANG` (default `en`).\n+\n+## Routes\n+\n+`POST /batches/:id/transfer` takes `{ \"to\": \"<location id>\", \"qty\": 2 }` and\n+answers with the batch now at `to`. Moving the whole batch changes its\n+location; moving part of it splits off a new batch (same item, lot, expiry and\n+received date) and writes an `adjust` movement on each batch, with `ref`\n+`transfer:out:<id>` / `transfer:in:<id>`. Errors: `unknown_batch`,\n+`unknown_location`, `invalid_qty` (zero, or more than the batch holds),\n+`bad_request` (batch already at `to`).\ndiff --git a/src/domain/batches.js b/src/domain/batches.js\nindex ee14fde..baaa63d 100644\n--- a/src/domain/batches.js\n+++ b/src/domain/batches.js\n@@ -55,3 +55,33 @@ export function waste(store, batchId, qty, { at, ref = \"\" }) {\n   batch.qty = Math.round((batch.qty - qty) * 1000) / 1000;\n   return record(store, { type: \"waste\", batchId, qty, at, ref });\n }\n+\n+/**\n+ * Moves `qty` of a batch to location `to`. The whole batch just changes\n+ * location; part of it splits off a new batch (same item, lot, expiry and\n+ * received date) at `to`. Returns the batch now at `to`.\n+ */\n+export function transfer(store, batchId, to, qty, { at }) {\n+  const batch = getBatch(store, batchId);\n+  if (!store.data.locations.some((loc) => loc.id === to)) throw new AppError(\"unknown_location\", { id: to });\n+  if (!(qty > 0) || qty > batch.qty) throw new AppError(\"invalid_qty\");\n+  if (batch.location === to) throw new AppError(\"bad_request\", { reason: \"the batch is already there\" });\n+  if (qty === batch.qty) {\n+    batch.location = to;\n+    return batch;\n+  }\n+  const moved = {\n+    id: store.nextId(\"batch\"),\n+    itemId: batch.itemId,\n+    lot: batch.lot,\n+    qty,\n+    receivedOn: batch.receivedOn,\n+    expires: batch.expires,\n+    location: to,\n+  };\n+  batch.qty = Math.round((batch.qty - qty) * 1000) / 1000;\n+  store.data.batches.push(moved);\n+  record(store, { type: \"adjust\", batchId: batch.id, qty, at, ref: `transfer:out:${moved.id}` });\n+  record(store, { type: \"adjust\", batchId: moved.id, qty, at, ref: `transfer:in:${batch.id}` });\n+  return moved;\n+}\ndiff --git a/src/http/routes/batches.js b/src/http/routes/batches.js\nindex 476b257..e4a4a27 100644\n--- a/src/http/routes/batches.js\n+++ b/src/http/routes/batches.js\n@@ -1,8 +1,9 @@\n-import { getBatch, listBatches, waste } from \"../../domain/batches.js\";\n+import { AppError } from \"../../errors.js\";\n+import { getBatch, listBatches, transfer, waste } from \"../../domain/batches.js\";\n import { movementsFor } from \"../../domain/ledger.js\";\n import { idParam, objectBody, qtyField } from \"../validate.js\";\n \n-/** GET /batches, GET /batches/:id, POST /batches/:id/waste. */\n+/** GET /batches, GET /batches/:id, POST /batches/:id/waste, POST /batches/:id/transfer. */\n export const batchRoutes = [\n   [\"GET\", \"/batches\", ({ store, query }) => ({\n     status: 200,\n@@ -18,4 +19,11 @@ export const batchRoutes = [\n     store.save();\n     return { status: 201, body: movement };\n   }],\n+  [\"POST\", \"/batches/:id/transfer\", ({ store, params, body, now }) => {\n+    const b = objectBody(body);\n+    if (typeof b.to !== \"string\") throw new AppError(\"bad_request\", { reason: \"to must be a location id\" });\n+    const batch = transfer(store, idParam(params.id), b.to, qtyField(b.qty), { at: new Date(now).toISOString() });\n+    store.save();\n+    return { status: 200, body: batch };\n+  }],\n ];\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T05:09:42.047Z",
+  "runner_commit": "ce1f9c1"
+}

@@ -1,0 +1,63 @@
+{
+  "run": "2026-10-28-0509",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "larder-schema3",
+  "task_version": "40e59289",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 79737,
+  "tokens_input": 308329,
+  "tokens_output": 4779,
+  "tokens_cache_read": 280369,
+  "tokens_cache_write": 27942,
+  "tokens_reasoning": 861,
+  "quota_5h_before": 15,
+  "quota_5h_after": 15,
+  "quota_week_before": 82,
+  "quota_week_after": 82,
+  "quota_confidence": "ok",
+  "why": "schema 3 with migration chain, seed, CLI, docs and value",
+  "verdict": "smart",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Batches need their own cost. Add `costCents` (integer cents per unit) to every batch as schema 3: batches from a received order take the order line's `priceCents`; batches that already exist take their item's current `priceCents`. The stock value report must use the batch costs. Update the tests that assume schema 2.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Schema 3 is in: every batch now has `costCents`. Batches made when an order is received take the order line's `priceCents`. Batches that already exist (in schema 1 and 2 files) take their item's current price when the file is migrated. The stock value report now prices each batch at its own cost, rounding each batch to the cent and summing those rounded amounts. Tests (16 of 16) and lint pass, and both the v1 file and `data/db.json` open as schema 3. I only changed the two CLI test assertions that expected schema 2 and added no new tests, since the task didn't ask for them. I left `data/db.json` at schema 2 on disk; it upgrades when it's opened, or you can run `larder migrate` on it. Separately, I noticed that `consume` in `src/domain/batches.js` uses the newest-received batch first instead of first-expired-first-out as `docs/DATA.md` requires; I didn't change it because it's outside this task.",
+    "changed": [
+      "src/db/migrations.js",
+      "src/domain/orders.js",
+      "src/domain/reports.js",
+      "data/seed.json",
+      "tests/cli.test.js",
+      "docs/DATA.md",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "schema 3 with migration chain, seed, CLI, docs and value"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "data/seed.json",
+    "docs/DATA.md",
+    "src/db/migrations.js",
+    "src/domain/orders.js",
+    "src/domain/reports.js",
+    "tests/cli.test.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex bb2dd6d..0f5bc09 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,9 @@\n ## Unreleased\n \n - Show stock on hand in `GET /items`.\n+- Batches carry their own cost, `costCents` (schema 3): received orders use\n+  the line price, existing batches take their item's current price. The stock\n+  value report (`GET /reports/stock-value`, `larder value`) uses batch costs.\n \n ## 2.3.0 - 2026-10-20\n \ndiff --git a/data/seed.json b/data/seed.json\nindex d3f4071..5444f85 100644\n--- a/data/seed.json\n+++ b/data/seed.json\n@@ -1,5 +1,5 @@\n {\n-  \"schemaVersion\": 2,\n+  \"schemaVersion\": 3,\n   \"seq\": { \"item\": 6, \"batch\": 9, \"order\": 3, \"supplier\": 2, \"movement\": 12, \"recipe\": 2 },\n   \"locations\": [\n     { \"id\": \"fridge\", \"name\": \"Walk-in fridge\", \"tempC\": 3 },\n@@ -19,15 +19,15 @@\n     { \"id\": 6, \"sku\": \"FRZ-STOCK\", \"name\": \"beef stock\", \"unit\": \"l\", \"minQty\": 4, \"supplierId\": 2, \"priceCents\": 415, \"tags\": [\"frozen\"] }\n   ],\n   \"batches\": [\n-    { \"id\": 1, \"itemId\": 1, \"lot\": \"GF-1018\", \"qty\": 4, \"receivedOn\": \"2026-10-18\", \"expires\": \"2026-11-15\", \"location\": \"dry\" },\n-    { \"id\": 2, \"itemId\": 1, \"lot\": \"GF-1025\", \"qty\": 6, \"receivedOn\": \"2026-10-25\", \"expires\": \"2026-11-22\", \"location\": \"dry\" },\n-    { \"id\": 3, \"itemId\": 2, \"lot\": \"HD-1026\", \"qty\": 8, \"receivedOn\": \"2026-10-26\", \"expires\": \"2026-11-02\", \"location\": \"fridge\" },\n-    { \"id\": 4, \"itemId\": 2, \"lot\": \"HD-1022\", \"qty\": 2, \"receivedOn\": \"2026-10-22\", \"expires\": \"2026-10-29\", \"location\": \"fridge\" },\n-    { \"id\": 5, \"itemId\": 3, \"lot\": \"HD-1020\", \"qty\": 1.5, \"receivedOn\": \"2026-10-20\", \"expires\": \"2026-12-20\", \"location\": \"fridge\" },\n-    { \"id\": 6, \"itemId\": 4, \"lot\": \"GF-0930\", \"qty\": 12.5, \"receivedOn\": \"2026-09-30\", \"expires\": \"2027-03-30\", \"location\": \"dry\" },\n-    { \"id\": 7, \"itemId\": 5, \"lot\": \"GF-1026\", \"qty\": 3, \"receivedOn\": \"2026-10-26\", \"expires\": \"2026-11-01\", \"location\": \"fridge\" },\n-    { \"id\": 8, \"itemId\": 6, \"lot\": \"HD-1001\", \"qty\": 5, \"receivedOn\": \"2026-10-01\", \"expires\": \"2027-01-01\", \"location\": \"freezer\" },\n-    { \"id\": 9, \"itemId\": 6, \"lot\": \"HD-1015\", \"qty\": 3, \"receivedOn\": \"2026-10-15\", \"expires\": \"2027-01-15\", \"location\": \"freezer\" }\n+    { \"id\": 1, \"itemId\": 1, \"lot\": \"GF-1018\", \"qty\": 4, \"receivedOn\": \"2026-10-18\", \"expires\": \"2026-11-15\", \"location\": \"dry\", \"costCents\": 180 },\n+    { \"id\": 2, \"itemId\": 1, \"lot\": \"GF-1025\", \"qty\": 6, \"receivedOn\": \"2026-10-25\", \"expires\": \"2026-11-22\", \"location\": \"dry\", \"costCents\": 180 },\n+    { \"id\": 3, \"itemId\": 2, \"lot\": \"HD-1026\", \"qty\": 8, \"receivedOn\": \"2026-10-26\", \"expires\": \"2026-11-02\", \"location\": \"fridge\", \"costCents\": 129 },\n+    { \"id\": 4, \"itemId\": 2, \"lot\": \"HD-1022\", \"qty\": 2, \"receivedOn\": \"2026-10-22\", \"expires\": \"2026-10-29\", \"location\": \"fridge\", \"costCents\": 129 },\n+    { \"id\": 5, \"itemId\": 3, \"lot\": \"HD-1020\", \"qty\": 1.5, \"receivedOn\": \"2026-10-20\", \"expires\": \"2026-12-20\", \"location\": \"fridge\", \"costCents\": 945 },\n+    { \"id\": 6, \"itemId\": 4, \"lot\": \"GF-0930\", \"qty\": 12.5, \"receivedOn\": \"2026-09-30\", \"expires\": \"2027-03-30\", \"location\": \"dry\", \"costCents\": 85 },\n+    { \"id\": 7, \"itemId\": 5, \"lot\": \"GF-1026\", \"qty\": 3, \"receivedOn\": \"2026-10-26\", \"expires\": \"2026-11-01\", \"location\": \"fridge\", \"costCents\": 133 },\n+    { \"id\": 8, \"itemId\": 6, \"lot\": \"HD-1001\", \"qty\": 5, \"receivedOn\": \"2026-10-01\", \"expires\": \"2027-01-01\", \"location\": \"freezer\", \"costCents\": 415 },\n+    { \"id\": 9, \"itemId\": 6, \"lot\": \"HD-1015\", \"qty\": 3, \"receivedOn\": \"2026-10-15\", \"expires\": \"2027-01-15\", \"location\": \"freezer\", \"costCents\": 415 }\n   ],\n   \"orders\": [\n     { \"id\": 1, \"supplierId\": 1, \"state\": \"received\", \"createdOn\": \"2026-10-23\", \"lines\": [{ \"itemId\": 1, \"qty\": 6, \"priceCents\": 180 }] },\ndiff --git a/docs/DATA.md b/docs/DATA.md\nindex 22b1463..bb0beb0 100644\n--- a/docs/DATA.md\n+++ b/docs/DATA.md\n@@ -30,6 +30,10 @@ These hold for every record, however it was made.\n \n ## Money\n \n+- Every batch has its own cost, `costCents` (integer cents per unit; schema\n+  3). A batch from a received order costs the order line's `priceCents`;\n+  batches that existed before schema 3 took their item's `priceCents` at\n+  migration. Stock value is each batch's quantity at its own cost.\n - Money is an integer number of cents. A line (quantity × unit price) is\n   rounded to the cent on its own (half up); totals are sums of rounded lines.\n   Never sum unrounded amounts.\ndiff --git a/src/db/migrations.js b/src/db/migrations.js\nindex a5429ac..195eb25 100644\n--- a/src/db/migrations.js\n+++ b/src/db/migrations.js\n@@ -3,7 +3,7 @@\n // load, so every older file opens as the current version.\n \n /** The schema version this code reads and writes. */\n-export const CURRENT_VERSION = 2;\n+export const CURRENT_VERSION = 3;\n \n export const MIGRATIONS = [\n   {\n@@ -38,6 +38,19 @@ export const MIGRATIONS = [\n       };\n     },\n   },\n+  {\n+    from: 2,\n+    // v3 gives every batch its own cost (`costCents`, integer cents per\n+    // unit). Existing batches take their item's current price.\n+    up(data) {\n+      const price = new Map(data.items.map((item) => [item.id, item.priceCents]));\n+      return {\n+        ...data,\n+        schemaVersion: 3,\n+        batches: data.batches.map((b) => ({ ...b, costCents: b.costCents ?? price.get(b.itemId) ?? 0 })),\n+      };\n+    },\n+  },\n ];\n \n /** Upgrades `data` to CURRENT_VERSION. */\ndiff --git a/src/domain/orders.js b/src/domain/orders.js\nindex 96558d3..69322fe 100644\n--- a/src/domain/orders.js\n+++ b/src/domain/orders.js\n@@ -73,6 +73,7 @@ export function receiveOrder(store, id, lots, { at }) {\n       receivedOn: at.slice(0, 10),\n       expires: lots[i].expires,\n       location: lots[i].location,\n+      costCents: line.priceCents,\n     };\n     store.data.batches.push(batch);\n     record(store, { type: \"receive\", batchId: batch.id, qty: line.qty, at, ref: `order:${order.id}` });\ndiff --git a/src/domain/reports.js b/src/domain/reports.js\nindex ccfceca..9acfe66 100644\n--- a/src/domain/reports.js\n+++ b/src/domain/reports.js\n@@ -1,22 +1,19 @@\n // Reports over the whole store.\n+import { lineCents } from \"../money.js\";\n import { listItems } from \"./items.js\";\n \n /**\n- * Stock value: every batch at its item's price. Returns the total and one\n- * line per item, in cents.\n+ * Stock value: every batch at its own cost. Returns the total and one line\n+ * per item, in cents.\n  */\n export function stockValue(store) {\n   const lines = listItems(store).map((item) => {\n-    const qty = store.data.batches\n-      .filter((b) => b.itemId === item.id)\n-      .reduce((s, b) => s + b.qty, 0);\n-    return { itemId: item.id, name: item.name, qty, valueCents: qty * item.priceCents };\n+    const batches = store.data.batches.filter((b) => b.itemId === item.id);\n+    const qty = batches.reduce((s, b) => s + b.qty, 0);\n+    const valueCents = batches.reduce((s, b) => s + lineCents(b.qty, b.costCents), 0);\n+    return { itemId: item.id, name: item.name, qty, valueCents };\n   });\n-  const total = lines.reduce((s, l) => s + l.valueCents, 0);\n-  return {\n-    totalCents: Math.round(total),\n-    lines: lines.map((l) => ({ ...l, valueCents: Math.round(l.valueCents) })),\n-  };\n+  return { totalCents: lines.reduce((s, l) => s + l.valueCents, 0), lines };\n }\n \n /** Waste per item between two days (inclusive), from the ledger. */\ndiff --git a/tests/cli.test.js b/tests/cli.test.js\nindex fc96719..a6efbe7 100644\n--- a/tests/cli.test.js\n+++ b/tests/cli.test.js\n@@ -12,8 +12,8 @@ test(\"larder migrate upgrades a file in place\", () => {\n   const file = join(dir, \"db.json\");\n   copyFileSync(new URL(\"../data/legacy-v1.json\", import.meta.url), file);\n   const out = execFileSync(process.execPath, [bin, \"migrate\", file], { encoding: \"utf8\" });\n-  assert.match(out, /schema 1 → 2/);\n-  assert.equal(JSON.parse(readFileSync(file, \"utf8\")).schemaVersion, 2);\n+  assert.match(out, /schema 1 → 3/);\n+  assert.equal(JSON.parse(readFileSync(file, \"utf8\")).schemaVersion, 3);\n });\n \n test(\"larder value prints a total\", () => {\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T05:09:42.047Z",
+  "runner_commit": "ce1f9c1"
+}

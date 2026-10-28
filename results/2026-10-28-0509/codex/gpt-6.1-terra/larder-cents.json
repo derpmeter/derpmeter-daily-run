@@ -1,0 +1,56 @@
+{
+  "run": "2026-10-28-0509",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "codex",
+  "model": "gpt-6.1-terra",
+  "effort": "",
+  "task": "larder-cents",
+  "task_version": "f91a2059",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 50,
+  "reason": "poor_output",
+  "skipped": null,
+  "duration_ms": 18014,
+  "tokens_input": 104224,
+  "tokens_output": 1105,
+  "tokens_cache_read": 84224,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 20,
+  "quota_5h_before": 63,
+  "quota_5h_after": 63,
+  "quota_week_before": 40,
+  "quota_week_after": 40,
+  "quota_confidence": "ok",
+  "why": "partly done: missed qty",
+  "verdict": "meh",
+  "model_id": "gpt-6.1-terra",
+  "prompt": "Bug report: the stock value report's total is a cent off from the sum of its own lines, and accounting says the total is wrong. Fix it and add a test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed the stock value total to sum rounded line values and added a regression test. npm test and npm run lint both pass.",
+    "changed": [
+      "src/domain/reports.js",
+      "tests/reports.test.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": false,
+    "partial": true,
+    "why": "missed qty"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/domain/reports.js",
+    "tests/reports.test.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex bb2dd6d..9975c4f 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Fix stock value totals to sum rounded item values.\n - Show stock on hand in `GET /items`.\n \n ## 2.3.0 - 2026-10-20\ndiff --git a/src/domain/reports.js b/src/domain/reports.js\nindex ccfceca..ae7f24d 100644\n--- a/src/domain/reports.js\n+++ b/src/domain/reports.js\n@@ -1,5 +1,6 @@\n // Reports over the whole store.\n import { listItems } from \"./items.js\";\n+import { lineCents } from \"../money.js\";\n \n /**\n  * Stock value: every batch at its item's price. Returns the total and one\n@@ -10,12 +11,12 @@ export function stockValue(store) {\n     const qty = store.data.batches\n       .filter((b) => b.itemId === item.id)\n       .reduce((s, b) => s + b.qty, 0);\n-    return { itemId: item.id, name: item.name, qty, valueCents: qty * item.priceCents };\n+    return { itemId: item.id, name: item.name, qty, valueCents: lineCents(qty, item.priceCents) };\n   });\n   const total = lines.reduce((s, l) => s + l.valueCents, 0);\n   return {\n-    totalCents: Math.round(total),\n-    lines: lines.map((l) => ({ ...l, valueCents: Math.round(l.valueCents) })),\n+    totalCents: total,\n+    lines,\n   };\n }\n \ndiff --git a/tests/reports.test.js b/tests/reports.test.js\nnew file mode 100644\nindex 0000000..52d2888\n--- /dev/null\n+++ b/tests/reports.test.js\n@@ -0,0 +1,20 @@\n+import test from \"node:test\";\n+import assert from \"node:assert/strict\";\n+import { stockValue } from \"../src/domain/reports.js\";\n+import { fresh } from \"./helpers.js\";\n+\n+test(\"stock value totals rounded item lines\", () => {\n+  const store = fresh();\n+  store.data.items = [\n+    { id: 1, name: \"First\", priceCents: 1 },\n+    { id: 2, name: \"Second\", priceCents: 1 },\n+  ];\n+  store.data.batches = [\n+    { itemId: 1, qty: 0.5 },\n+    { itemId: 2, qty: 0.5 },\n+  ];\n+\n+  const report = stockValue(store);\n+  assert.deepEqual(report.lines.map((line) => line.valueCents), [1, 1]);\n+  assert.equal(report.totalCents, 2);\n+});\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T05:09:42.047Z",
+  "runner_commit": "ce1f9c1"
+}
