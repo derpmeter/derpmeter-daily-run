@@ -13,7 +13,7 @@ const task = {
     "- Batches, stock on hand, cooking, alerts, the stock value report and stock-takes only see the request's site. Items, suppliers, recipes and dishes are shared.",
     "Older data files must still open. Update the tests that assume the old schema.",
   ].join("\n"),
-  budgetSec: 300,
+  budgetSec: 152,
   allowed: ["src/", "tests/", "data/", "bin/", "docs/", "README.md", "CHANGELOG.md"],
   forbidden: [],
   async check(ctx) {

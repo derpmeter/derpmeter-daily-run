@@ -14,7 +14,7 @@ const task = {
     "- Every request that changes data writes an audit entry (time, key name, method, path, status). `GET /audit` lists them newest first and is for managers only.",
     "Update the existing tests so they send a key.",
   ].join("\n"),
-  budgetSec: 240,
+  budgetSec: 108,
   allowed: ["src/", "tests/", "data/", "docs/", "README.md", "CHANGELOG.md"],
   forbidden: [],
   async check(ctx) {

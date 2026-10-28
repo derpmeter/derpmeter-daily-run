@@ -15,7 +15,7 @@ const task = {
     "- If any row is invalid or an item runs out, nothing from that file is imported and the error message names the row (`row 2` is the first data row).",
     "- `GET /reports/variance?from=YYYY-MM-DD&to=YYYY-MM-DD` lists, per item, the theoretical use from sales sold in those days (inclusive) and the actual use (every `consume` movement in those days), with the difference, for items where either is above zero.",
   ].join("\n"),
-  budgetSec: 240,
+  budgetSec: 140,
   // data/ is allowed: storing sales may be a schema change, which updates the
   // seed (docs/ARCHITECTURE.md).
   allowed: ["src/", "tests/", "data/", "docs/", "README.md", "CHANGELOG.md"],
