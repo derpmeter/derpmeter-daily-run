@@ -1,0 +1,55 @@
+{
+  "run": "2026-10-28-1155",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "pymd-slug",
+  "task_version": "32e7cc8d",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 28113,
+  "tokens_input": 149613,
+  "tokens_output": 2551,
+  "tokens_cache_read": 135433,
+  "tokens_cache_write": 14168,
+  "tokens_reasoning": 83,
+  "quota_5h_before": 20,
+  "quota_5h_after": 20,
+  "quota_week_before": 86,
+  "quota_week_after": 86,
+  "quota_confidence": "ok",
+  "why": "slugify strips again on every path, with a regression test and changelog",
+  "verdict": "smart",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed: `slugify` in the `toc` extension now trims leading and trailing whitespace after removing punctuation, so `# Hello world !` gets the id `hello-world`. Two new regression tests (trailing and leading punctuation) fail without the fix and pass with it. The full suite passes: 1131 tests, 112 skipped. A changelog entry is added under an unreleased heading.",
+    "changed": [
+      "markdown/extensions/toc.py",
+      "tests/test_syntax/extensions/test_toc.py",
+      "docs/changelog.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "slugify strips again on every path, with a regression test and changelog"
+  },
+  "changed": [
+    "docs/changelog.md",
+    "markdown/extensions/toc.py",
+    "tests/test_syntax/extensions/test_toc.py"
+  ],
+  "diff": "diff --git a/docs/changelog.md b/docs/changelog.md\nindex dcb6362..e064ef0 100644\n--- a/docs/changelog.md\n+++ b/docs/changelog.md\n@@ -12,6 +12,13 @@ and this project adheres to the\n [Python Version Specification](https://packaging.python.org/en/latest/specifications/version-specifiers/).\n See the [Contributing Guide](contributing.md) for details.\n \n+## [unreleased]\n+\n+### Fixed\n+\n+* Strip leading and trailing whitespace in the `toc` extension's `slugify` so a\n+  heading such as `# Hello world !` no longer gets an id with a trailing separator.\n+\n ## [3.11.2] - 2026-10-19\n \n ### Fixed\ndiff --git a/markdown/extensions/toc.py b/markdown/extensions/toc.py\nindex 3cc6481..0681254 100644\n--- a/markdown/extensions/toc.py\n+++ b/markdown/extensions/toc.py\n@@ -41,7 +41,7 @@ def slugify(value: str, separator: str, unicode: bool = False) -> str:\n         # Replace Extended Latin characters with ASCII, i.e. `žlutý` => `zluty`\n         value = unicodedata.normalize('NFKD', value)\n         value = value.encode('ascii', 'ignore').decode('ascii')\n-    value = re.sub(r'[^\\w\\s-]', '', value).lower()\n+    value = re.sub(r'[^\\w\\s-]', '', value).strip().lower()\n     return re.sub(r'[{}\\s]+'.format(separator), separator, value)\n \n \ndiff --git a/tests/test_syntax/extensions/test_toc.py b/tests/test_syntax/extensions/test_toc.py\nindex 372ba09..6bd02ca 100644\n--- a/tests/test_syntax/extensions/test_toc.py\n+++ b/tests/test_syntax/extensions/test_toc.py\n@@ -1142,6 +1142,20 @@ class TestTOC(TestCase):\n             extensions=[TocExtension(permalink=True)]\n         )\n \n+    def testIdWithTrailingPunctuation(self):\n+        self.assertMarkdownRenders(\n+            '# Hello world !',\n+            '<h1 id=\"hello-world\">Hello world !</h1>',\n+            extensions=['toc']\n+        )\n+\n+    def testIdWithLeadingPunctuation(self):\n+        self.assertMarkdownRenders(\n+            '# ! Hello world',\n+            '<h1 id=\"hello-world\">! Hello world</h1>',\n+            extensions=['toc']\n+        )\n+\n     def testNl2brCompatibility(self):\n         self.assertMarkdownRenders(\n             '[TOC]\\ntext',\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T11:55:15.418Z",
+  "runner_commit": "dd57b2e"
+}
