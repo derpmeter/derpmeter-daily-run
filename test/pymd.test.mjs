@@ -135,6 +135,12 @@ test("pymd-tasklist: reference solution; without docs it is partly done", async 
   ];
   const full = await check("pymd-tasklist", ...code, ...docs);
   assert.equal(full.ok, true, full.why);
+  // The page may be named like upstream's (task_lists.md).
+  const otherName = [
+    put("docs/extensions/task_lists.md", "title: Task Lists\n\n# Task Lists\n\nThe Task Lists extension turns list items that start with \`[ ]\` or \`[x]\` into\ncheckboxes. Options: \`clickable\` (default \`False\`) and \`item_class\` (default\n\`task\`). Use it with \`markdown.markdown(text, extensions=['tasklist'])\`.\n"),
+    edit("docs/extensions/index.md", "[Table of Contents]", "[Task Lists]: task_lists.md\n[Table of Contents]"),
+  ];
+  assert.equal((await check("pymd-tasklist", ...code, ...otherName)).ok, true);
   const bare = await check("pymd-tasklist", ...code);
   assert.equal(bare.partial, true);
   assert.match(bare.why, /docs/);

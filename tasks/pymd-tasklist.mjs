@@ -52,8 +52,15 @@ print(json.dumps(out))
       ["basic", "ordered", "notTasks", "inline", "nested", "loose", "clickable", "itemClass", "plainLists"],
     );
     r.entryPoint = /tasklist\s*=\s*['"]markdown\.extensions\.tasklist:\w+['"]/.test(await ctx.read("pyproject.toml"));
-    const page = await ctx.read("docs/extensions/tasklist.md").catch(() => "");
-    r.docs = page.length > 200 && /tasklist/i.test(await ctx.read("docs/extensions/index.md").catch(() => ""));
+    // Any new extension page will do (upstream names them like task_lists.md).
+    const pages = (await ctx.run("git", ["status", "--porcelain", "--untracked-files=all", "docs/extensions"])).stdout
+      .split("\n")
+      .filter((l) => l.startsWith("??") || l.startsWith("A "))
+      .map((l) => l.slice(3).trim())
+      .filter((f) => f.endsWith(".md"));
+    let page = false;
+    for (const f of pages) if (/task/i.test(await ctx.read(f).catch(() => "")) && (await ctx.read(f)).length > 200) page = true;
+    r.docs = page && /task/i.test(await ctx.read("docs/extensions/index.md").catch(() => ""));
     r.changelog = await pyChangelog(ctx);
     r.testsAdded = await pyTestsAdded(ctx, "tasklist");
     r.lineLength = await pyLineLength(ctx);
