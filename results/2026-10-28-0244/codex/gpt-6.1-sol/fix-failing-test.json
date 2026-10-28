@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0244",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "",
+  "task": "fix-failing-test",
+  "task_version": "2fa8929a",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 20122,
+  "tokens_input": 69250,
+  "tokens_output": 449,
+  "tokens_cache_read": 62720,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 0,
+  "quota_5h_before": 33,
+  "quota_5h_after": 33,
+  "quota_week_before": 35,
+  "quota_week_after": 35,
+  "quota_confidence": "ok",
+  "why": "tests pass, fix noted",
+  "verdict": "smart",
+  "model_id": "gpt-6.1-sol",
+  "prompt": "`npm test` has one failing test. Fix the bug in the source code so every test passes.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed singular quantity formatting. All 7 tests and lint pass.",
+    "changed": [
+      "src/format.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "tests pass, fix noted"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/format.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..b3f2914 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Fix singular quantity formatting for one unit or item.\n - Faster tag lookup.\n \n ## 1.4.2 - 2026-09-30\ndiff --git a/src/format.js b/src/format.js\nindex ebbf7c4..d7bffa5 100644\n--- a/src/format.js\n+++ b/src/format.js\n@@ -2,5 +2,5 @@\n /** \"2 bags\", \"1 carton\", \"6 eggs\". */\n export function formatQty(qty, unit, name) {\n   const word = unit || name;\n-  return `${qty} ${word}s`;\n+  return `${qty} ${word}${qty === 1 ? \"\" : \"s\"}`;\n }\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T02:44:58.381Z",
+  "runner_commit": "c5faf89"
+}

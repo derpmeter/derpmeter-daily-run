@@ -1,0 +1,55 @@
+{
+  "run": "2026-10-28-0244",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "regression-fix",
+  "task_version": "57e8e383",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 27684,
+  "tokens_input": 145907,
+  "tokens_output": 1481,
+  "tokens_cache_read": 133086,
+  "tokens_cache_write": 12809,
+  "tokens_reasoning": 196,
+  "quota_5h_before": 30,
+  "quota_5h_after": 30,
+  "quota_week_before": 80,
+  "quota_week_after": 80,
+  "quota_confidence": "ok",
+  "why": "fixed, the new test catches the bug, fix noted",
+  "verdict": "smart",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Bug report: `findByTag` misses items that have the tag but not as their first tag. Fix it, and add a regression test to tests/items.test.js that fails on the old code.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "`findByTag` only looked at each item's first tag, so I changed it to use `item.tags.includes(tag)`. The new regression test fails on the old code and passes now; `npm test` (8/8 pass) and `npm run lint` both pass. I also added a CHANGELOG bullet under Unreleased.",
+    "changed": [
+      "src/items.js",
+      "tests/items.test.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "fixed, the new test catches the bug, fix noted"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js",
+    "tests/items.test.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..5e66028 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Faster tag lookup.\n+- Fix `findByTag` missing items whose matching tag is not their first tag.\n \n ## 1.4.2 - 2026-09-30\n \ndiff --git a/src/items.js b/src/items.js\nindex b294891..b1cae5b 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -3,7 +3,7 @@ import { fetchItems, saveItem } from \"./store.js\";\n /** Items that carry `tag`. */\n export async function findByTag(tag) {\n   const items = await fetchItems();\n-  return items.filter((item) => item.tags[0] === tag);\n+  return items.filter((item) => item.tags.includes(tag));\n }\n \n /** Adds an item with the next free id. */\ndiff --git a/tests/items.test.js b/tests/items.test.js\nindex 5fd1ed5..cf6e086 100644\n--- a/tests/items.test.js\n+++ b/tests/items.test.js\n@@ -13,3 +13,9 @@ test(\"addItem assigns the next id\", async () => {\n   assert.equal(item.id, 5);\n   assert.equal((await fetchItems()).length, 5);\n });\n+\n+test(\"findByTag matches tags after the first\", async () => {\n+  await addItem({ name: \"butter\", qty: 1, unit: \"block\", tags: [\"dairy\", \"fridge\"] });\n+  const names = (await findByTag(\"fridge\")).map((i) => i.name);\n+  assert.ok(names.includes(\"butter\"));\n+});\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T02:44:58.381Z",
+  "runner_commit": "c5faf89"
+}

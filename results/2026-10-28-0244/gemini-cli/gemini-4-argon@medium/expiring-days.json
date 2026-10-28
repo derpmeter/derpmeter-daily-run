@@ -1,0 +1,55 @@
+{
+  "run": "2026-10-28-0244",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "expiring-days",
+  "task_version": "8f154ebf",
+  "cli_version": "1.4.8",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 225278,
+  "tokens_input": 41952,
+  "tokens_output": 12316,
+  "tokens_cache_read": 182066,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 8765,
+  "quota_5h_before": 5.924,
+  "quota_5h_after": 6.331,
+  "quota_week_before": 3.561,
+  "quota_week_after": 3.662,
+  "quota_confidence": "ok",
+  "why": "225s over 70s",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "Add and export `isExpiringSoon(item, now, days = 3)` in src/expiry.js: true when the item has not expired and expires within `days` days (use `daysLeft`). Then make `GET /expiring` use it and accept `?days=N` (default 7, so the current behavior stays). `days` must be a whole number from 0 to 365; anything else answers status 400. `handle(path, now)` receives the path with its query string.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Added `isExpiringSoon` in `src/expiry.js` and updated `GET /expiring` in `src/server.js` to use it and accept `?days=N` (whole numbers 0 to 365, defaulting to 7).",
+    "changed": [
+      "src/expiry.js",
+      "src/server.js",
+      "CHANGELOG.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "helper, ?days, default, validation and conventions all right"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/expiry.js",
+    "src/server.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..3def646 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Faster tag lookup.\n+- Add `isExpiringSoon` and `?days=N` on `GET /expiring`.\n \n ## 1.4.2 - 2026-09-30\n \ndiff --git a/src/expiry.js b/src/expiry.js\nindex 0a7b267..ffdb1a5 100644\n--- a/src/expiry.js\n+++ b/src/expiry.js\n@@ -16,3 +16,8 @@ export function isExpired(item, now = Date.now()) {\n   }\n   return left === 0;\n }\n+\n+/** True when the item has not expired and expires within `days` days. */\n+export function isExpiringSoon(item, now = Date.now(), days = 3) {\n+  return !isExpired(item, now) && daysLeft(item, now) <= days;\n+}\ndiff --git a/src/server.js b/src/server.js\nindex 988f86d..100102c 100644\n--- a/src/server.js\n+++ b/src/server.js\n@@ -1,6 +1,6 @@\n import { createServer } from \"node:http\";\n import { fetchItems } from \"./store.js\";\n-import { isExpired, daysLeft } from \"./expiry.js\";\n+import { isExpiringSoon } from \"./expiry.js\";\n import { log } from \"./log.js\";\n import { httpError } from \"./errors.js\";\n \n@@ -9,18 +9,30 @@ const PORT = Number(process.env.PORT || 4300);\n /** Answers one request: { status, body }. */\n export async function handle(path, now = Date.now()) {\n   const items = await fetchItems();\n-  if (path === \"/items\") return { status: 200, body: items };\n-  if (path === \"/expiring\")\n+  const url = new URL(path, \"http://x\");\n+  if (url.pathname === \"/items\") return { status: 200, body: items };\n+  if (url.pathname === \"/expiring\") {\n+    const raw = url.searchParams.get(\"days\");\n+    const days = raw === null ? 7 : /^\\d+$/.test(raw) ? Number(raw) : -1;\n+    if (days < 0 || days > 365) {\n+      return httpError(\n+        400,\n+        \"invalid_days\",\n+        \"days must be a whole number from 0 to 365.\",\n+      );\n+    }\n     return {\n       status: 200,\n-      body: items.filter((i) => !isExpired(i, now) && daysLeft(i, now) <= 7),\n+      body: items.filter((i) => isExpiringSoon(i, now, days)),\n     };\n+  }\n   return httpError(404, \"not_found\", \"No such route.\");\n }\n \n if (import.meta.url === `file://${process.argv[1]}`) {\n   createServer(async (req, res) => {\n-    const { status, body } = await handle(new URL(req.url, \"http://x\").pathname);\n+    const url = new URL(req.url, \"http://x\");\n+    const { status, body } = await handle(url.pathname + url.search);\n     res.writeHead(status, { \"content-type\": \"application/json\" });\n     res.end(JSON.stringify(body));\n   }).listen(PORT, () => log.info(\"listening\", { port: PORT }));\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": false,
+  "runner_started": "2026-10-28T02:44:58.381Z",
+  "runner_commit": "c5faf89"
+}

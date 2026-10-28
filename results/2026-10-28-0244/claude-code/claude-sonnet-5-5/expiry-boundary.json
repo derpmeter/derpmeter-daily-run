@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0244",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-sonnet-5-5",
+  "effort": "",
+  "task": "expiry-boundary",
+  "task_version": "6e4a838d",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 11831,
+  "tokens_input": 93878,
+  "tokens_output": 933,
+  "tokens_cache_read": 82874,
+  "tokens_cache_write": 10996,
+  "tokens_reasoning": 39,
+  "quota_5h_before": 0,
+  "quota_5h_after": 0,
+  "quota_week_before": 80,
+  "quota_week_after": 80,
+  "quota_confidence": "ok",
+  "why": "day boundaries right at every time of day, fix noted",
+  "verdict": "smart",
+  "model_id": "claude-sonnet-5-5",
+  "prompt": "Bug report: an item that expires tomorrow shows 0 days left in the afternoon. Expiry dates are UTC calendar dates, and an item is good through the end of its expiry date. Make `daysLeft(item, now)` the number of UTC calendar days from the UTC date of `now` to the expiry date (tomorrow is 1, today is 0, yesterday is -1, at any time of day), and make `isExpired` true only when `daysLeft` is below 0.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "daysLeft now counts UTC calendar days from the UTC date of `now` to the expiry date. isExpired is true only when daysLeft is below 0. `npm test` and `npm run lint` pass, but I added no new test for the afternoon case.",
+    "changed": [
+      "src/expiry.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "day boundaries right at every time of day, fix noted"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/expiry.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..59e0411 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Faster tag lookup.\n+- Fix days left counting UTC calendar days, so an item expiring tomorrow no longer shows 0 in the afternoon, and items are good through the end of their expiry date.\n \n ## 1.4.2 - 2026-09-30\n \ndiff --git a/src/expiry.js b/src/expiry.js\nindex 0a7b267..dd04691 100644\n--- a/src/expiry.js\n+++ b/src/expiry.js\n@@ -2,9 +2,11 @@ import { log } from \"./log.js\";\n \n const DAY = 86400000;\n \n-/** Whole days until the item expires (negative once expired). */\n+/** UTC calendar days from `now` to the expiry date (negative once expired). */\n export function daysLeft(item, now = Date.now()) {\n-  return Math.floor((Date.parse(item.expires) - now) / DAY);\n+  const today = Math.floor(now / DAY);\n+  const expiry = Math.floor(Date.parse(item.expires) / DAY);\n+  return expiry - today;\n }\n \n /** True once the item has expired; logs a warning. */\n@@ -14,5 +16,5 @@ export function isExpired(item, now = Date.now()) {\n     log.warn(\"item expired\", { id: item.id, days: left });\n     return true;\n   }\n-  return left === 0;\n+  return false;\n }\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T02:44:58.381Z",
+  "runner_commit": "c5faf89"
+}

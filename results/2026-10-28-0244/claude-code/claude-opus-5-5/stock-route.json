@@ -1,0 +1,55 @@
+{
+  "run": "2026-10-28-0244",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "stock-route",
+  "task_version": "2fd2311d",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 29486,
+  "tokens_input": 99172,
+  "tokens_output": 1997,
+  "tokens_cache_read": 85517,
+  "tokens_cache_write": 13647,
+  "tokens_reasoning": 194,
+  "quota_5h_before": 31,
+  "quota_5h_after": 31,
+  "quota_week_before": 80,
+  "quota_week_after": 80,
+  "quota_confidence": "ok",
+  "why": "GET /stock as specified, conventions kept",
+  "verdict": "smart",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Add `GET /stock` to src/server.js (in `handle`). It returns the rows of data/stock.csv as JSON objects with the keys sku, name, qty, unit and shelf, in file order. `qty` is a number and an empty `unit` is `null`. Parse the file as CSV and read it when the request comes in.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "I added `GET /stock` to `handle` in src/server.js. On every request it reads data/stock.csv, parses it with a small CSV parser that handles quoted fields like \"Beans, black\", and returns the rows in file order with `qty` as a number and an empty `unit` as null. I also listed the route in the README and added a changelog bullet. `npm test` and `npm run lint` pass, and calling `handle(\"/stock\")` returned all six rows correctly.",
+    "changed": [
+      "src/server.js",
+      "README.md",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "GET /stock as specified, conventions kept"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "README.md",
+    "src/server.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..f23e338 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Faster tag lookup.\n+- Add `GET /stock`, which lists the rows of `data/stock.csv`.\n \n ## 1.4.2 - 2026-09-30\n \ndiff --git a/README.md b/README.md\nindex 37fe697..faa2914 100644\n--- a/README.md\n+++ b/README.md\n@@ -13,3 +13,4 @@ Current version: 1.4.2.\n \n - `GET /items`: every item.\n - `GET /expiring`: items that expire within a week.\n+- `GET /stock`: rows of `data/stock.csv` (sku, name, qty, unit, shelf).\ndiff --git a/src/server.js b/src/server.js\nindex 988f86d..75ddfe4 100644\n--- a/src/server.js\n+++ b/src/server.js\n@@ -1,13 +1,63 @@\n import { createServer } from \"node:http\";\n+import { readFile } from \"node:fs/promises\";\n import { fetchItems } from \"./store.js\";\n import { isExpired, daysLeft } from \"./expiry.js\";\n import { log } from \"./log.js\";\n import { httpError } from \"./errors.js\";\n \n const PORT = Number(process.env.PORT || 4300);\n+const STOCK_CSV = new URL(\"../data/stock.csv\", import.meta.url);\n+\n+// RFC 4180 style: quoted fields may hold commas, newlines and \"\" escapes.\n+function parseCsv(text) {\n+  const rows = [];\n+  let row = [];\n+  let field = \"\";\n+  let quoted = false;\n+  for (let i = 0; i < text.length; i++) {\n+    const c = text[i];\n+    if (quoted) {\n+      if (c === '\"' && text[i + 1] === '\"') {\n+        field += '\"';\n+        i++;\n+      } else if (c === '\"') quoted = false;\n+      else field += c;\n+    } else if (c === '\"') quoted = true;\n+    else if (c === \",\") {\n+      row.push(field);\n+      field = \"\";\n+    } else if (c === \"\\n\" || c === \"\\r\") {\n+      if (c === \"\\r\" && text[i + 1] === \"\\n\") i++;\n+      row.push(field);\n+      rows.push(row);\n+      row = [];\n+      field = \"\";\n+    } else field += c;\n+  }\n+  if (field !== \"\" || row.length) {\n+    row.push(field);\n+    rows.push(row);\n+  }\n+  return rows.filter((r) => r.length > 1 || r[0] !== \"\");\n+}\n+\n+async function readStock() {\n+  const [header, ...rows] = parseCsv(await readFile(STOCK_CSV, \"utf8\"));\n+  return rows.map((cells) => {\n+    const r = Object.fromEntries(header.map((h, i) => [h, cells[i] ?? \"\"]));\n+    return {\n+      sku: r.sku,\n+      name: r.name,\n+      qty: Number(r.qty),\n+      unit: r.unit === \"\" ? null : r.unit,\n+      shelf: r.shelf,\n+    };\n+  });\n+}\n \n /** Answers one request: { status, body }. */\n export async function handle(path, now = Date.now()) {\n+  if (path === \"/stock\") return { status: 200, body: await readStock() };\n   const items = await fetchItems();\n   if (path === \"/items\") return { status: 200, body: items };\n   if (path === \"/expiring\")\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T02:44:58.381Z",
+  "runner_commit": "c5faf89"
+}
