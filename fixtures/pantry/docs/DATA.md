@@ -27,7 +27,8 @@ These rules hold for every item the store keeps, however it got there.
 
 ## Expiry
 
-- `expires` is a calendar date written `YYYY-MM-DD` (UTC).
+- `expires` is optional. When it is set, it is a calendar date written
+  `YYYY-MM-DD` (UTC).
 
 ## Units
 
