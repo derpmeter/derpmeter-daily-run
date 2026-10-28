@@ -1,7 +1,7 @@
 // Importing till sales: consumption per dish, idempotent per ticket, all or
 // nothing per file, and a variance report against the ledger. Sale stock may
 // be booked at the sale time or the import time (the spec leaves it open), so
-// the variance check accepts both.
+// the variance check accepts both, and the gap may be named diff or difference.
 import { LARDER_PRELUDE } from "../lib/larder.mjs";
 import { cases, changelogNoted, grade, readmeRoute } from "../lib/grade.mjs";
 
@@ -16,8 +16,10 @@ const task = {
     "- `GET /reports/variance?from=YYYY-MM-DD&to=YYYY-MM-DD` lists, per item, the theoretical use from sales sold in those days (inclusive) and the actual use (every `consume` movement in those days), with the difference, for items where either is above zero.",
   ].join("\n"),
   budgetSec: 240,
-  allowed: ["src/", "tests/", "docs/", "README.md", "CHANGELOG.md"],
-  forbidden: ["data/"],
+  // data/ is allowed: storing sales may be a schema change, which updates the
+  // seed (docs/ARCHITECTURE.md).
+  allowed: ["src/", "tests/", "data/", "docs/", "README.md", "CHANGELOG.md"],
+  forbidden: [],
   async check(ctx) {
     const r = await cases(
       ctx,
@@ -46,7 +48,8 @@ const task = {
           await handle({ method: "POST", path: "/recipes/1/cook", body: { portions: 4 } });
           const v = await handle({ path: "/reports/variance?from=2026-10-27&to=2026-10-28" });
           const onion = Array.isArray(v.body) ? v.body.find((x) => x.itemId === 1) : null;
-          out.variance = v.status === 200 && !!onion && onion.theoretical === 1.2 && (onion.actual === 2.4 || onion.actual === 3.6) && Math.abs(onion.diff) === Math.round((onion.actual - 1.2) * 1000) / 1000;
+          const gap = onion?.diff ?? onion?.difference;
+          out.variance = v.status === 200 && !!onion && onion.theoretical === 1.2 && (onion.actual === 2.4 || onion.actual === 3.6) && Math.abs(gap) === Math.round((onion.actual - 1.2) * 1000) / 1000;
           out.varianceItems = Array.isArray(v.body) && !v.body.some((x) => x.itemId === 4) && v.body.some((x) => x.itemId === 6);
           const badRange = await handle({ path: "/reports/variance?from=27-10-2026&to=2026-10-28" });
           out.varianceDates = badRange.status === 400; }
