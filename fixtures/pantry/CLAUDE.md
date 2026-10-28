@@ -1,6 +1,7 @@
 # Pantry: rules for coding agents
 
 - Plain Node.js (ESM). Do not add dependencies.
+- The data rules in `docs/DATA.md` hold for every change to the store or to items.
 - Never edit files under `tests/` unless the task asks for test changes.
 - Keep changes to what the task asks. Do not reformat or refactor other code.
 - The product name is written "Pantry". Never "PANTRY" or "pantry" in prose.

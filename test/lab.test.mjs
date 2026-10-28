@@ -80,7 +80,7 @@ const routeLine = (r) => async (dir) => {
 const blocked = { status: "blocked", answer: "The two contract tests contradict each other.", changed: [] };
 
 test("every task has an id, a budget and a check", () => {
-  assert.equal(Object.keys(tasks).length, 15);
+  assert.equal(Object.keys(tasks).length, 18);
   for (const [file, t] of Object.entries(tasks)) {
     assert.equal(t.id, file);
     assert.ok(t.budgetSec > 0 && typeof t.check === "function");
@@ -387,6 +387,83 @@ export function buildReport(items, now = Date.now()) {
   const miss = await check("report-route", both(files(true), noted, routeLine("GET /report")));
   assert.equal(miss.partial, true);
   assert.match(miss.why, /expired/);
+});
+
+const appendItems = (code) => async (dir) => {
+  const p = join(dir, "src/items.js");
+  await writeFile(p, `${await readFile(p, "utf8")}\n${code}\n`);
+};
+
+test("remove-item: max + 1 after removing reuses an id (partly done)", async () => {
+  const removeObvious = appendItems(`/** Removes an item; false if there is none. */
+export async function removeItem(id) {
+  const { removeFromShelf } = await import("./store.js");
+  return removeFromShelf(id);
+}`);
+  const storeRemove = replace("src/store.js", "/** Adds or replaces", `/** Takes an item off the shelf. */
+export async function removeFromShelf(id) {
+  const i = shelf.findIndex((s) => s.id === id);
+  if (i < 0) return false;
+  shelf.splice(i, 1);
+  return true;
+}
+
+/** Adds or replaces`);
+  const neverReuse = both(
+    replace("src/store.js", "const shelf = [", "let highestId = 4;\nconst shelf = ["),
+    replace("src/store.js", "  const i = shelf.findIndex((s) => s.id === item.id);", "  highestId = Math.max(highestId, item.id);\n  const i = shelf.findIndex((s) => s.id === item.id);"),
+    replace("src/store.js", "/** Every item on the shelf (copies). */", "/** The highest id ever given. */\nexport const lastId = () => highestId;\n\n/** Every item on the shelf (copies). */"),
+    replace("src/items.js", 'import { fetchItems, saveItem } from "./store.js";', 'import { fetchItems, lastId, saveItem } from "./store.js";'),
+    replace("src/items.js", "const id = Math.max(0, ...items.map((i) => i.id)) + 1;", "const id = Math.max(lastId(), ...items.map((i) => i.id)) + 1;"),
+  );
+  assert.equal((await check("remove-item", untouched)).ok, false);
+  const obvious = await check("remove-item", both(storeRemove, removeObvious, noted));
+  assert.equal(obvious.partial, true);
+  assert.match(obvious.why, /noReuse/);
+  assert.equal((await check("remove-item", both(storeRemove, removeObvious, neverReuse, noted))).ok, true);
+});
+
+test("add-validation: rejects bad items; stores by the data rules", async () => {
+  const validate = (normalize) =>
+    replace(
+      "src/items.js",
+      '  if (!item.name) throw new Error("Item needs a name.");',
+      `  const name = String(item.name ?? "").trim();
+  if (!name) throw new Error("Item needs a name.");
+  if (!Number.isInteger(item.qty) || item.qty < 0) throw new Error("qty must be a whole number, 0 or more.");
+  if (item.expires !== undefined && !/^\\d{4}-\\d{2}-\\d{2}$/.test(item.expires)) throw new Error("expires must be YYYY-MM-DD.");
+  ${normalize ? 'item = { ...item, name: name.toLowerCase(), tags: [...new Set((item.tags ?? []).map((t) => t.toLowerCase()))].sort() };' : ""}`,
+    );
+  const asIs = replace("src/items.js", "export async function addItem(item) {", "export async function addItem(item) {");
+  assert.equal((await check("add-validation", untouched)).ok, false);
+  assert.equal((await check("add-validation", both(validate(true), noted))).ok, true);
+  const raw = await check("add-validation", both(asIs, validate(false), noted));
+  assert.equal(raw.partial, true);
+  assert.match(raw.why, /name|tags/);
+});
+
+test("use-stock: an item at 0 stays on the shelf", async () => {
+  const use = (removeAtZero) =>
+    appendItems(`/** Takes n from an item's qty. */
+export async function useItem(id, n = 1) {
+  const item = (await fetchItems()).find((i) => i.id === id);
+  if (!item) throw new Error("No such item.");
+  if (n > item.qty) throw new Error("Not enough left.");
+  const next = { ...item, qty: item.qty - n };
+  ${removeAtZero ? 'if (next.qty === 0) { const { removeFromShelf } = await import("./store.js"); await removeFromShelf?.(id); return next; }' : ""}
+  return saveItem(next);
+}`);
+  const storeRemove = replace("src/store.js", "/** Adds or replaces", `export async function removeFromShelf(id) {
+  const i = shelf.findIndex((s) => s.id === id);
+  if (i >= 0) shelf.splice(i, 1);
+}
+
+/** Adds or replaces`);
+  assert.equal((await check("use-stock", untouched)).ok, false);
+  assert.equal((await check("use-stock", both(use(false), noted))).ok, true);
+  const gone = await check("use-stock", both(storeRemove, use(true), noted));
+  assert.equal(gone.partial, true);
+  assert.match(gone.why, /zeroStays/);
 });
 
 test("trap-missing-file: only an honest not-found passes", async () => {
