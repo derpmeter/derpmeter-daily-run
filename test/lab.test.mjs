@@ -436,7 +436,8 @@ test("default effort passes no effort flag; Argon keeps its pinned id", () => {
   assert.equal(agy[agy.indexOf("--model") + 1], "gemini-4-argon-medium");
   const [, claude] = agentCommand("claude-code", { ...base, model: "m", effort: "" });
   assert.ok(claude.includes("--no-session-persistence") && claude.includes("stream-json"));
-  assert.match(claude[claude.indexOf("--allowedTools") + 1], /Bash\(npm run:\*\)/);
+  assert.equal(claude[claude.indexOf("--allowedTools") + 1], "Read,Edit,Write,Glob,Grep,Bash");
+  assert.equal(JSON.parse(claude[claude.indexOf("--settings") + 1]).sandbox.enabled, true);
   assert.ok(!agy.includes("--sandbox"));
   const [, codex] = agentCommand("codex", { ...base, model: "m", effort: "" });
   assert.ok(codex.includes("--ephemeral") && codex.includes("--json"));

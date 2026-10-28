@@ -26,6 +26,7 @@ import {
   modelId,
   parseReport,
   parseUsage,
+  permissionDenials,
   claudeQuota,
   promptFor,
   resultPath,
@@ -63,11 +64,15 @@ const list = (n) => option(n)?.split(",").filter(Boolean);
 const apply = args.includes("--apply");
 const publish = args.includes("--publish");
 const keep = args.includes("--keep");
+// --redo runs the selected cells again even if today already has their votes
+// (after a harness fix that does not change a chore's version).
+const redo = args.includes("--redo");
 const only = { agent: list("--agent"), model: list("--model"), task: list("--task") };
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 const root = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
 const home = homedir();
 const started = new Date();
+const runnerCommit = (await exec("git", ["rev-parse", "--short", "HEAD"], { cwd: root })).stdout.trim();
 const day = started.toISOString().slice(0, 10);
 const stamp = started.toISOString().slice(11, 16).replace(":", "");
 const bins = { claude: process.env.CLAUDE_BIN, codex: process.env.CODEX_BIN, agy: process.env.AGY_BIN };
@@ -228,10 +233,12 @@ async function runOne(cell, task) {
       check,
       changed,
       diff: (fullDiff || diff).slice(0, 50_000),
+      permission_denials: permissionDenials(cell.agent, res.stdout),
       exit: res.code,
       timed_out: res.timedOut,
       isolated: isolated[cell.agent],
       runner_started: started.toISOString(),
+      runner_commit: runnerCommit,
     },
     { workspace: dir, home },
   );
@@ -252,7 +259,7 @@ await Promise.all(
   [...new Set(cells.map((c) => c.agent))].map(async (agent) => {
     for (const cell of cells.filter((c) => c.agent === agent))
       for (const task of runTasks) {
-        if (done.has(`${cell.agent}|${cell.model}|${cell.effort}|${task.id}|${task.version}`)) continue;
+        if (!redo && done.has(`${cell.agent}|${cell.model}|${cell.effort}|${task.id}|${task.version}`)) continue;
         const { row, vote } = await runOne(cell, task);
         results.push(row);
         log(
