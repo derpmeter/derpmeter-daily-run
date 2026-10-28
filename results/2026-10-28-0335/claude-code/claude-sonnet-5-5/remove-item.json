@@ -1,0 +1,55 @@
+{
+  "run": "2026-10-28-0335",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-sonnet-5-5",
+  "effort": "",
+  "task": "remove-item",
+  "task_version": "70bc8923",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 21158,
+  "tokens_input": 123840,
+  "tokens_output": 1914,
+  "tokens_cache_read": 110880,
+  "tokens_cache_write": 12948,
+  "tokens_reasoning": 187,
+  "quota_5h_before": 9,
+  "quota_5h_after": 9,
+  "quota_week_before": 81,
+  "quota_week_after": 81,
+  "quota_confidence": "ok",
+  "why": "removes, never reuses ids, conventions kept",
+  "verdict": "smart",
+  "model_id": "claude-sonnet-5-5",
+  "prompt": "Add an exported `removeItem(id)` to src/items.js. It takes the item off the shelf and returns `true`, or returns `false` when there is no item with that id.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Added exported removeItem(id) to src/items.js; it returns true when the item is removed and false when no item has that id. I also made new ids come from a never-decreasing counter in the store, so removed ids are not reused (as docs/DATA.md requires). npm test and npm run lint pass. I added no test for removeItem, since tests/ is off-limits unless asked.",
+    "changed": [
+      "src/items.js",
+      "src/store.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "removes, never reuses ids, conventions kept"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js",
+    "src/store.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..b72b42b 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Faster tag lookup.\n+- Add `removeItem` to take an item off the shelf.\n \n ## 1.4.2 - 2026-09-30\n \ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..87c7d8a 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -1,4 +1,4 @@\n-import { fetchItems, saveItem } from \"./store.js\";\n+import { deleteItem, fetchItems, nextId, saveItem } from \"./store.js\";\n \n /** Items that carry `tag`. */\n export async function findByTag(tag) {\n@@ -9,7 +9,11 @@ export async function findByTag(tag) {\n /** Adds an item with the next free id. */\n export async function addItem(item) {\n   if (!item.name) throw new Error(\"Item needs a name.\");\n-  const items = await fetchItems();\n-  const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n+  const id = await nextId();\n   return saveItem({ tags: [], unit: \"\", ...item, id });\n }\n+\n+/** Takes the item off the shelf; false if no item has `id`. */\n+export async function removeItem(id) {\n+  return deleteItem(id);\n+}\ndiff --git a/src/store.js b/src/store.js\nindex f3ed7b4..40d9f60 100644\n--- a/src/store.js\n+++ b/src/store.js\n@@ -5,12 +5,28 @@ const shelf = [\n   { id: 3, name: \"egg\", qty: 6, unit: \"\", tags: [\"fridge\"], expires: \"2026-11-09\" },\n   { id: 4, name: \"yogurt\", qty: 4, unit: \"cup\", tags: [\"fridge\"], expires: \"2026-10-20\" },\n ];\n+// Highest id ever assigned; ids are never reused, even after removal.\n+let lastId = Math.max(0, ...shelf.map((s) => s.id));\n \n /** Every item on the shelf (copies). */\n export async function fetchItems() {\n   return shelf.map((item) => ({ ...item, tags: [...item.tags] }));\n }\n \n+/** Reserves and returns the next never-used id. */\n+export async function nextId() {\n+  lastId += 1;\n+  return lastId;\n+}\n+\n+/** Deletes the item with `id`; true if it was on the shelf. */\n+export async function deleteItem(id) {\n+  const i = shelf.findIndex((s) => s.id === id);\n+  if (i < 0) return false;\n+  shelf.splice(i, 1);\n+  return true;\n+}\n+\n /** Adds or replaces an item by id. */\n export async function saveItem(item) {\n   const i = shelf.findIndex((s) => s.id === item.id);\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T03:35:21.344Z",
+  "runner_commit": "dafbe33"
+}

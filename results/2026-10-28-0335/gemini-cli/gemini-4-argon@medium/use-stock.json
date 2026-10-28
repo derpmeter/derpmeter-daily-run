@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0335",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "use-stock",
+  "task_version": "bc162767",
+  "cli_version": "1.4.8",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 96997,
+  "tokens_input": 34266,
+  "tokens_output": 3103,
+  "tokens_cache_read": 66169,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 1618,
+  "quota_5h_before": 11.429,
+  "quota_5h_after": 11.643,
+  "quota_week_before": 4.291,
+  "quota_week_after": 4.433,
+  "quota_confidence": "ok",
+  "why": "97s over 35s",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "Add an exported `useItem(id, n = 1)` to src/items.js that takes `n` from the item's `qty` and returns the updated item. Using more than is left, or an unknown id, throws an Error.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Added exported `useItem(id, n = 1)` to `src/items.js` and recorded the change in `CHANGELOG.md`.",
+    "changed": [
+      "src/items.js",
+      "CHANGELOG.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "uses stock, keeps empty items, conventions kept"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..1ed8692 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Add `useItem` to take quantity from an item.\n - Faster tag lookup.\n \n ## 1.4.2 - 2026-09-30\ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..9ccadb8 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -13,3 +13,14 @@ export async function addItem(item) {\n   const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n   return saveItem({ tags: [], unit: \"\", ...item, id });\n }\n+\n+/** Takes `n` from the `qty` of item `id` and returns the updated item. */\n+export async function useItem(id, n = 1) {\n+  const items = await fetchItems();\n+  const item = items.find((i) => i.id === id);\n+  if (!item) throw new Error(`Unknown item id: ${id}.`);\n+  if (!Number.isInteger(n) || n < 0 || n > item.qty) {\n+    throw new Error(\"Insufficient quantity.\");\n+  }\n+  return saveItem({ ...item, qty: item.qty - n });\n+}\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": false,
+  "runner_started": "2026-10-28T03:35:21.344Z",
+  "runner_commit": "dafbe33"
+}
