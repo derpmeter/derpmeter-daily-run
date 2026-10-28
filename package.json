@@ -1,0 +1,16 @@
+{
+  "name": "derpmeter-lab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lab Daily: the same small chores every day for each coding agent model, judged like a DerpMeter vote.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "list": "node bin/lab-daily.mjs --list",
+    "dry": "node --env-file-if-exists=.env bin/lab-daily.mjs",
+    "daily": "node --env-file=.env bin/lab-daily.mjs --apply --publish",
+    "install:launchd": "sh bin/install.sh"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "backup": { "timeUtc": "02:15", "keepDays": 14, "restoreMinutes": 10 },
+  "alerts": {
+    "sameDayExpiries": 3,
+    "channel": "#pantry-ops",
+    "hoursKst": "09:00 to 18:00"
+  },
+  "port": 4300,
+  "health": "GET /items"
+}

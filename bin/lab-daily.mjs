@@ -1,0 +1,311 @@
+#!/usr/bin/env node
+// Lab Daily: the Lab votes like a person after a day of chores. Each model in
+// grid.json gets the same small chores in a fresh copy of a fixture project;
+// what it did becomes one Smart/Meh/Dumb vote per chore. Not a benchmark: no
+// ranking, no difficulty ladder; it shows whether a model got dumber.
+//   node --env-file=.env bin/lab-daily.mjs [--apply] [--publish] [--agent codex]
+//     [--model gpt-6.1-sol] [--task rename] [--keep] [--list]
+// Default is a dry run. --apply stores votes in DerpMeter's lab_votes table;
+// --publish commits the raw results to results/<day>/ on a branch merged
+// into main. Plan: docs/PLAN.md.
+import { existsSync } from "node:fs";
+import { appendFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join, relative } from "node:path";
+import {
+  AGENT_IDS,
+  REPORT_SCHEMA,
+  VERDICT,
+  agentCommand,
+  buildGrid,
+  capSec,
+  changedFiles,
+  classifyFailure,
+  cliVersion,
+  judge,
+  modelId,
+  parseReport,
+  parseUsage,
+  claudeQuota,
+  promptFor,
+  resultPath,
+  sanitize,
+  taskVersion,
+  wrongModel,
+} from "../lib/lab.mjs";
+import {
+  checkContext,
+  cliCpu,
+  exec,
+  forgetRun,
+  othersWorked,
+  publishResults,
+  readPlan,
+  readQuota,
+  stopAll,
+  supabase,
+  sweepAgy,
+  walk,
+} from "../lib/system.mjs";
+
+for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"])
+  process.on(signal, () => {
+    stopAll();
+    process.exit(130);
+  });
+
+const args = process.argv.slice(2);
+const option = (n) => {
+  const i = args.indexOf(n);
+  return i < 0 ? undefined : args[i + 1];
+};
+const list = (n) => option(n)?.split(",").filter(Boolean);
+const apply = args.includes("--apply");
+const publish = args.includes("--publish");
+const keep = args.includes("--keep");
+const only = { agent: list("--agent"), model: list("--model"), task: list("--task") };
+const log = (...a) => console.log(new Date().toISOString(), ...a);
+const root = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
+const home = homedir();
+const started = new Date();
+const day = started.toISOString().slice(0, 10);
+const stamp = started.toISOString().slice(11, 16).replace(":", "");
+const bins = { claude: process.env.CLAUDE_BIN, codex: process.env.CODEX_BIN, agy: process.env.AGY_BIN };
+const BIN = { "claude-code": bins.claude || "claude", codex: bins.codex || "codex", "gemini-cli": bins.agy || "agy" };
+
+// Fixture, tasks, grid.
+const fixture = join(root, "fixtures/pantry");
+const fixtureFiles = await walk(fixture);
+const tasks = [];
+for (const name of (await readdir(join(root, "tasks"))).sort()) {
+  if (!name.endsWith(".mjs")) continue;
+  const file = join(root, "tasks", name);
+  const task = (await import(file)).default;
+  task.version = taskVersion(fixtureFiles, await readFile(file, "utf8"));
+  tasks.push(task);
+}
+const grid = JSON.parse(await readFile(join(root, "grid.json"), "utf8"));
+let cells = buildGrid(grid).filter(
+  (c) => (!only.agent || only.agent.includes(c.agent)) && (!only.model || only.model.includes(c.model)),
+);
+const runTasks = tasks.filter((t) => !only.task || only.task.includes(t.id));
+
+if (args.includes("--list")) {
+  for (const c of cells) console.log(c.agent, modelId(c));
+  console.log(`${cells.length} cells × ${runTasks.length} tasks = ${cells.length * runTasks.length} runs`);
+  for (const t of runTasks) console.log(`task ${t.id} v${t.version} budget ${t.budgetSec}s`);
+  process.exit(0);
+}
+
+// CLI versions and plans; an agent whose CLI is missing is left out today.
+const versions = {};
+const plans = {};
+for (const agent of AGENT_IDS) {
+  if (!cells.some((c) => c.agent === agent)) continue;
+  const v = await exec(BIN[agent], ["--version"], { timeoutSec: 30 });
+  versions[agent] = v.code === 0 ? cliVersion(v.stdout) : null;
+  if (!versions[agent]) {
+    log(`${agent}: CLI not available (${BIN[agent]}), skipped`);
+    cells = cells.filter((c) => c.agent !== agent);
+    continue;
+  }
+  plans[agent] = await readPlan(agent, bins);
+}
+// Antigravity lists the model ids it serves to this account.
+if (cells.some((c) => c.agent === "gemini-cli")) {
+  const m = await exec(BIN["gemini-cli"], ["models"], { timeoutSec: 60 });
+  const served = new Set(m.stdout.split("\n").map((l) => l.split(/\s/)[0]));
+  cells = cells.filter((c) => {
+    const ok = c.agent !== "gemini-cli" || served.has(modelId(c));
+    if (!ok) log(`gemini-cli: ${modelId(c)} not served, skipped`);
+    return ok;
+  });
+}
+// The user's own logins are used (decided 2026-10-27). Personal settings are
+// switched off by CLI flags where the CLI has them; Antigravity has none and
+// reads ~/.gemini/GEMINI.md, which is recorded with every run.
+const isolated = {
+  "claude-code": true,
+  codex: true,
+  "gemini-cli": !existsSync(join(home, ".gemini/GEMINI.md")),
+};
+
+let db = null;
+const done = new Set();
+if (apply) {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY)
+    throw new Error("Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (.env).");
+  db = supabase(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  // A rerun the same day only fills in what is missing or was skipped.
+  const rows = await db.select(`select=agent,model,effort,task,task_version&day=eq.${day}&score=not.is.null`);
+  for (const r of rows) done.add(`${r.agent}|${r.model}|${r.effort}|${r.task}|${r.task_version}`);
+}
+
+await sweepAgy();
+const scratch = await mkdtemp(join(tmpdir(), "derpmeter-lab-"));
+const schemaFile = join(scratch, "report.schema.json");
+await writeFile(schemaFile, JSON.stringify(REPORT_SCHEMA));
+
+// The last quota reading per agent: the "before" of its next run.
+const lastQuota = {};
+
+async function runOne(cell, task) {
+  const dir = await mkdtemp(join(scratch, "run-"));
+  await cp(fixture, dir, { recursive: true });
+  const git = (...a) => exec("git", ["-c", "user.name=lab", "-c", "user.email=lab@localhost", ...a], { cwd: dir });
+  // A chore may change its own copy first (a planted bug, an extra file).
+  if (task.setup) await task.setup(checkContext(dir, null));
+  await git("init", "-q");
+  await git("add", "-A");
+  await git("commit", "-qm", "fixture");
+  const lastFile = join(scratch, `${relative(scratch, dir)}.last.txt`);
+  const logFile = join(scratch, `${relative(scratch, dir)}.agent.log`);
+  const cap = capSec(task);
+  const [cmd, argv] = agentCommand(cell.agent, {
+    model: cell.model,
+    effort: cell.effort,
+    prompt: promptFor(task),
+    schemaFile,
+    lastFile,
+    logFile,
+    capSec: cap,
+    bins,
+  });
+  const before = lastQuota[cell.agent] ?? (lastQuota[cell.agent] = await readQuota(cell.agent, bins));
+  const cpuBefore = await cliCpu(cell.agent);
+  const res = await exec(cmd, argv, { cwd: dir, timeoutSec: cap + 15 });
+  const cpuAfter = await cliCpu(cell.agent);
+  const after =
+    cell.agent === "claude-code" ? (claudeQuota(res.stdout) ?? null) : await readQuota(cell.agent, bins);
+  if (after) lastQuota[cell.agent] = after;
+  const last = existsSync(lastFile) ? await readFile(lastFile, "utf8") : "";
+  const agentLog = existsSync(logFile) ? (await readFile(logFile, "utf8")).slice(-20_000) : "";
+  const report = parseReport(cell.agent, res.stdout, last);
+  const usage = parseUsage(cell.agent, res.stdout);
+  const changed = changedFiles((await git("status", "--porcelain", "--untracked-files=all")).stdout);
+  const diff = (await git("diff", "--no-color")).stdout + (await git("diff", "--no-color", "--cached")).stdout;
+  await git("add", "-A");
+  const fullDiff = (await git("diff", "--no-color", "--cached", "HEAD")).stdout;
+  const skipped = wrongModel(cell.agent, agentLog, modelId(cell))
+    ? "crash"
+    : classifyFailure({ code: res.code, output: `${res.stdout}\n${agentLog}`, report, timedOut: res.timedOut });
+  const check = skipped ? { ok: false, why: "" } : await task.check(checkContext(dir, report));
+  const vote = judge({ skipped, timedOut: res.timedOut, report, check, changed, task, durationMs: res.ms });
+  const quotaOk = before && after && !othersWorked(cpuBefore, cpuAfter);
+  const row = {
+    day,
+    agent: cell.agent,
+    model: cell.model,
+    effort: cell.effort,
+    task: task.id,
+    task_version: task.version,
+    cli_version: versions[cell.agent],
+    plan: plans[cell.agent] ?? "",
+    score: vote.score,
+    reason: vote.reason,
+    skipped: vote.skipped ?? null,
+    duration_ms: res.ms,
+    tokens_input: usage?.input ?? null,
+    tokens_output: usage?.output ?? null,
+    tokens_cache_read: usage?.cacheRead ?? null,
+    tokens_cache_write: usage?.cacheWrite ?? null,
+    tokens_reasoning: usage?.reasoning ?? null,
+    quota_5h_before: before?.fiveHour ?? null,
+    quota_5h_after: after?.fiveHour ?? null,
+    quota_week_before: before?.weekly ?? null,
+    quota_week_after: after?.weekly ?? null,
+    quota_confidence: before && after ? (quotaOk ? "ok" : "low") : null,
+  };
+  // Raw result for the repository: no local paths, names or addresses.
+  const raw = sanitize(
+    {
+      ...row,
+      verdict: VERDICT[vote.score] ?? null,
+      why: vote.why,
+      model_id: modelId(cell),
+      prompt: promptFor(task),
+      report,
+      check,
+      changed,
+      diff: (fullDiff || diff).slice(0, 50_000),
+      exit: res.code,
+      timed_out: res.timedOut,
+      isolated: isolated[cell.agent],
+      runner_started: started.toISOString(),
+    },
+    { workspace: dir, home },
+  );
+  const file = join(root, resultPath(row));
+  await mkdir(dirname(file), { recursive: true });
+  await writeFile(file, `${JSON.stringify(raw, null, 2)}\n`);
+  if (vote.skipped) log(`  output tail: ${sanitize(res.stdout.slice(-300), { workspace: dir, home }).replace(/\s+/g, " ")}`);
+  await forgetRun(cell.agent, { dir, stdout: res.stdout });
+  if (!keep) await rm(dir, { recursive: true, force: true });
+  return { row, vote };
+}
+
+const label = { 0: "Smart", 50: "Meh", 100: "Dumb" };
+const results = [];
+// Agents run side by side; each agent's runs go one at a time, so a quota
+// reading covers one run.
+await Promise.all(
+  [...new Set(cells.map((c) => c.agent))].map(async (agent) => {
+    for (const cell of cells.filter((c) => c.agent === agent))
+      for (const task of runTasks) {
+        if (done.has(`${cell.agent}|${cell.model}|${cell.effort}|${task.id}|${task.version}`)) continue;
+        const { row, vote } = await runOne(cell, task);
+        results.push(row);
+        log(
+          `${agent} ${modelId(cell)} ${task.id}: ${vote.skipped ? `skipped (${vote.skipped})` : label[vote.score]}` +
+            `${vote.reason ? ` ${vote.reason}` : ""} — ${vote.why} (${Math.round(row.duration_ms / 1000)}s, quota ${row.quota_confidence ?? "n/a"})`,
+        );
+        if (db)
+          try {
+            await db.upsert(row);
+          } catch (e) {
+            log(`  store failed: ${e.message}`);
+          }
+        if (vote.skipped === "rate_limit" || vote.skipped === "auth") {
+          log(`${agent}: ${vote.skipped}, stopping this agent for today`);
+          return;
+        }
+      }
+  }),
+);
+await sweepAgy();
+if (!keep) await rm(scratch, { recursive: true, force: true });
+
+// Day summary for people reading the repository.
+const cellsOut = new Map();
+for (const r of results) {
+  const k = `${r.agent}|${r.model}|${r.effort}`;
+  const c = cellsOut.get(k) ?? { n: 0, sum: 0, skipped: 0 };
+  if (r.score === null) c.skipped++;
+  else {
+    c.n++;
+    c.sum += r.score;
+  }
+  cellsOut.set(k, c);
+}
+const lines = [
+  `# Lab Daily ${day}`,
+  "",
+  `Run started ${started.toISOString()}. Score = mean of the Lab's votes (Smart 0, Meh 50, Dumb 100).`,
+  "",
+  "| Agent | Model | Effort | Score | Votes | Skipped |",
+  "| --- | --- | --- | --- | --- | --- |",
+];
+for (const [k, c] of cellsOut) {
+  const [agent, model, effort] = k.split("|");
+  const score = c.n ? (c.sum / c.n).toFixed(1) : "—";
+  log(`${agent} ${model} ${effort || "default"}: ${score} over ${c.n} votes${c.skipped ? `, ${c.skipped} skipped` : ""}`);
+  lines.push(`| ${agent} | ${model} | ${effort || "default"} | ${score} | ${c.n} | ${c.skipped} |`);
+}
+if (results.length) {
+  await mkdir(join(root, "results", day), { recursive: true });
+  const summary = join(root, "results", day, "README.md");
+  const prior = existsSync(summary) ? `${await readFile(summary, "utf8")}\n` : "";
+  await writeFile(summary, `${prior}${lines.join("\n")}\n`);
+}
+log(`${results.length} runs${apply ? " stored" : " (dry run, nothing stored)"}`);
+if (publish && results.length) log(`results published: ${await publishResults(root, day, stamp, log)}`);

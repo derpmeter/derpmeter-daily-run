@@ -1,0 +1,5 @@
+{
+  "claude-code": { "models": ["claude-opus-5-5", "claude-sonnet-5-5"] },
+  "codex": { "models": ["gpt-6.1-sol", "gpt-6.1-terra"] },
+  "gemini-cli": { "models": ["gemini-4-argon"], "efforts": ["medium"] }
+}

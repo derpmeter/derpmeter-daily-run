@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Lab Daily once a day at 03:30 local time. Installed by bin/install.sh,
+     which fills in the __PLACEHOLDERS__. A run missed during sleep starts on wake. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.derpmeter.lab-daily</string>
+  <key>WorkingDirectory</key>
+  <string>__REPO__</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__NODE__</string>
+    <string>--env-file=.env</string>
+    <string>bin/lab-daily.mjs</string>
+    <string>--apply</string>
+    <string>--publish</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>CLAUDE_BIN</key>
+    <string>__CLAUDE__</string>
+    <key>CODEX_BIN</key>
+    <string>__CODEX__</string>
+    <key>AGY_BIN</key>
+    <string>__AGY__</string>
+    <key>PATH</key>
+    <string>__NODEDIR__:__BINDIRS__:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin</string>
+  </dict>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>3</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <key>LowPriorityIO</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>__LOG__</string>
+  <key>StandardErrorPath</key>
+  <string>__LOG__</string>
+</dict>
+</plist>

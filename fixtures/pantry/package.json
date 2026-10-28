@@ -1,0 +1,13 @@
+{
+  "name": "pantry",
+  "version": "1.4.2",
+  "private": true,
+  "type": "module",
+  "description": "Pantry tracks what is on the shelf and what expires soon.",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "lint": "node tools/lint.mjs",
+    "docs": "node tools/gen-docs.mjs",
+    "start": "node src/server.js"
+  }
+}

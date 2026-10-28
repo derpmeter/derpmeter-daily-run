@@ -1,0 +1,6 @@
+sku,name,qty,unit,shelf
+P-101,Rice,2,bag,B2
+P-102,Milk,1,carton,F1
+P-103,Egg,6,,F1
+P-104,Yogurt,4,cup,F2
+P-105,Black beans,3,can,B1
