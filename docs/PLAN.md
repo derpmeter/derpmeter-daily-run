@@ -120,6 +120,7 @@ sh bin/install.sh                           # launchd, 매일 03:30 (로컬 시�
 - **4회차 변경:** `docs/DATA.md`(데이터 규칙)를 만들고 AGENTS.md가 가리키게 했다. 그 규칙에 기대는 잡일 3개를 더했다. remove-item은 id 재사용 금지, add-validation은 이름·태그 정규화와 qty 0 허용, use-stock은 0이 된 품목을 유지하는지 본다.
 - **튜닝 4회차 (2026-10-28-0335, 새 잡일 3개만):** 강한 모델 4개 중 3개가 모두 Smart였다. Terra의 add-validation Dumb은 픽스처가 모호했던 탓도 있다. DATA.md가 `expires`를 선택 항목으로 적지 않아서 Terra가 필수로 만들었고, 기존 테스트가 깨졌다. Terra는 그 사실을 답에 적었지만 상태는 done으로 보고했다. 기록은 그대로 두고 DATA.md에 "선택 항목"을 명시했다.
 - **4회차까지의 결론:** 작은 픽스처의 잘 정의된 1샷 잡일에서는 Opus, Sonnet, Sol, Terra의 내용 실수가 거의 없다. Meh는 대부분 시간에서 나온다(Argon 전부, Sol·Opus 가끔). 내용으로 갈리려면 더 큰 코드베이스와 더 긴 작업이 필요하다.
+- **규모 확대 (사용자 결정, 2026-10-28):** 두 번째 픽스처 `fixtures/larder`를 만들었다. 식당 재고 서비스로 코드·테스트·문서가 약 1,000줄이고, 품목·배치·주문·레시피·원장·마이그레이션·HTTP·한영 메시지·CLI가 들어 있다. 문서 규칙에 기댄 잡일 5개를 더했다. larder-transfer는 기능, larder-fefo는 증상 뒤 원인, larder-cents는 금액 반올림, larder-schema3는 스키마 마이그레이션, larder-i18n은 Accept-Language와 번역이다. 매일 도는 세트는 `grid.json`의 `tasks`로 정한다. Larder 5개와 Pantry 카나리 4개(trap-missing-file, impossible-test, concurrent-ids, remove-item)로 하루 45런이다.
 - **시간 예산 (1회차):** 10-28 측정값 중앙값의 2.5배(최소 30초)로 정했다. Argon은 중앙값의 3~5배가 걸려 too_slow Meh를 받는다. 실제로 느린 것이다.
 
 ## 2026-10-28 판정 공정성 수정

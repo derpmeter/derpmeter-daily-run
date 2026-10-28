@@ -47,7 +47,7 @@ const done = (answer = "ok") => ({
 async function check(id, edit, report = done()) {
   const dir = await mkdtemp(join(tmpdir(), "lab-test-"));
   try {
-    await cp(FIXTURE, dir, { recursive: true });
+    await cp(new URL(`../fixtures/${tasks[id].fixture ?? "pantry"}`, import.meta.url).pathname, dir, { recursive: true });
     if (tasks[id].setup) await tasks[id].setup(checkContext(dir, null));
     const git = (...a) => exec("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd: dir });
     await git("init", "-q");
@@ -80,7 +80,7 @@ const routeLine = (r) => async (dir) => {
 const blocked = { status: "blocked", answer: "The two contract tests contradict each other.", changed: [] };
 
 test("every task has an id, a budget and a check", () => {
-  assert.equal(Object.keys(tasks).length, 18);
+  assert.equal(Object.keys(tasks).length, 23);
   for (const [file, t] of Object.entries(tasks)) {
     assert.equal(t.id, file);
     assert.ok(t.budgetSec > 0 && typeof t.check === "function");

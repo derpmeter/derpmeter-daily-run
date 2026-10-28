@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "seq": { "item": 2, "supplier": 1 },
+  "locations": [{ "id": "dry", "name": "Dry store", "tempC": 18 }],
+  "suppliers": [{ "id": 1, "name": "Green Farm", "leadDays": 2 }],
+  "items": [
+    { "id": 1, "sku": "VEG-ONION", "name": "onion", "unit": "kg", "minQty": 5, "supplierId": 1, "priceCents": 175, "tags": ["veg"], "stock": 7, "expires": "2026-11-10", "location": "dry", "updatedOn": "2026-10-01" },
+    { "id": 2, "sku": "DRY-SALT", "name": "salt", "unit": "kg", "minQty": 1, "supplierId": 1, "priceCents": 60, "tags": ["dry"], "stock": 0 }
+  ],
+  "orders": [],
+  "recipes": []
+}

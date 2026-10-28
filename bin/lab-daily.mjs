@@ -80,27 +80,33 @@ const run = `${day}-${stamp}`;
 const bins = { claude: process.env.CLAUDE_BIN, codex: process.env.CODEX_BIN, agy: process.env.AGY_BIN };
 const BIN = { "claude-code": bins.claude || "claude", codex: bins.codex || "codex", "gemini-cli": bins.agy || "agy" };
 
-// Fixture, tasks, grid.
-const fixture = join(root, "fixtures/pantry");
-const fixtureFiles = await walk(fixture);
+// Fixtures, tasks, grid. A chore names its fixture (default pantry); its
+// version hashes that fixture and the chore file.
+const fixtureFiles = new Map();
 const tasks = [];
 for (const name of (await readdir(join(root, "tasks"))).sort()) {
   if (!name.endsWith(".mjs")) continue;
   const file = join(root, "tasks", name);
   const task = (await import(file)).default;
-  task.version = taskVersion(fixtureFiles, await readFile(file, "utf8"));
+  task.fixture ??= "pantry";
+  if (!fixtureFiles.has(task.fixture))
+    fixtureFiles.set(task.fixture, await walk(join(root, "fixtures", task.fixture)));
+  task.version = taskVersion(fixtureFiles.get(task.fixture), await readFile(file, "utf8"));
   tasks.push(task);
 }
 const grid = JSON.parse(await readFile(join(root, "grid.json"), "utf8"));
 let cells = buildGrid(grid).filter(
   (c) => (!only.agent || only.agent.includes(c.agent)) && (!only.model || only.model.includes(c.model)),
 );
-const runTasks = tasks.filter((t) => !only.task || only.task.includes(t.id));
+// --task picks chores; otherwise the daily set in grid.json (all if none).
+const runTasks = tasks.filter((t) =>
+  only.task ? only.task.includes(t.id) : !grid.tasks || grid.tasks.includes(t.id),
+);
 
 if (args.includes("--list")) {
   for (const c of cells) console.log(c.agent, modelId(c));
   console.log(`${cells.length} cells × ${runTasks.length} tasks = ${cells.length * runTasks.length} runs`);
-  for (const t of runTasks) console.log(`task ${t.id} v${t.version} budget ${t.budgetSec}s`);
+  for (const t of runTasks) console.log(`task ${t.id} (${t.fixture}) v${t.version} budget ${t.budgetSec}s`);
   process.exit(0);
 }
 
@@ -155,7 +161,7 @@ const lastQuota = {};
 
 async function runOne(cell, task) {
   const dir = await mkdtemp(join(scratch, "run-"));
-  await cp(fixture, dir, { recursive: true });
+  await cp(join(root, "fixtures", task.fixture), dir, { recursive: true });
   const git = (...a) => exec("git", ["-c", "user.name=lab", "-c", "user.email=lab@localhost", ...a], { cwd: dir });
   // A chore may change its own copy first (a planted bug, an extra file).
   if (task.setup) await task.setup(checkContext(dir, null));

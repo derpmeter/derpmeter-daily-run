@@ -1,0 +1,13 @@
+{
+  "name": "larder",
+  "version": "2.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Larder keeps a small kitchen's stock: items, batches, orders, recipes and the stock ledger.",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "lint": "node tools/lint.mjs",
+    "start": "node src/http/server.js",
+    "cli": "node bin/larder.mjs"
+  }
+}
