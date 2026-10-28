@@ -557,6 +557,10 @@ test("judge: votes the way a person would", () => {
     null,
   ]);
   assert.deepEqual(v({ durationMs: 61_000 }), [50, "too_slow", null]);
+  // "done" while the answer admits a failure: Meh, not a hallucination.
+  assert.deepEqual(v({ check: { ok: false, why: "x" }, report: { status: "done", answer: "Added it; 7 new tests error because the package is not installed.", changed: [] } }), [50, "poor_output", null]);
+  assert.deepEqual(v({ check: { ok: false, why: "x" }, report: { status: "done", answer: "All done, tests pass.", changed: [] } }), [100, "hallucination", null]);
+  assert.deepEqual(v({ check: { ok: false, why: "x" }, report: { status: "done", answer: "Fixed the failing test in format.js.", changed: [] } }), [100, "hallucination", null]);
   // Partly done is Meh, even when reported done or blocked.
   assert.deepEqual(v({ check: { ok: false, partial: true, why: "x" } }), [50, "poor_output", null]);
   assert.deepEqual(v({ check: { ok: false, partial: true, why: "x" }, report: { status: "blocked", answer: "", changed: [] } }), [50, "poor_output", null]);

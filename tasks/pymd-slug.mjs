@@ -10,7 +10,7 @@ const task = {
   prompt:
     "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.",
   budgetSec: 150,
-  allowed: ["markdown/", "tests/", "docs/changelog.md"],
+  allowed: ["markdown/", "tests/", "docs/"],
   forbidden: [],
   async setup(ctx) {
     const p = "markdown/extensions/toc.py";

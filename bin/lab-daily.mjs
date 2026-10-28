@@ -192,6 +192,8 @@ async function runOne(cell, task) {
   const before = lastQuota[cell.agent] ?? (lastQuota[cell.agent] = await readQuota(cell.agent, bins));
   const cpuBefore = await cliCpu(cell.agent);
   const res = await exec(cmd, argv, { cwd: dir, timeoutSec: cap + 15 });
+  // A CLI that stops itself at the cap (agy --print-timeout) was stuck too.
+  if (res.ms >= cap * 1000) res.timedOut = true;
   const cpuAfter = await cliCpu(cell.agent);
   const after =
     cell.agent === "claude-code" ? (claudeQuota(res.stdout) ?? null) : await readQuota(cell.agent, bins);
