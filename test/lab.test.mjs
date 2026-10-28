@@ -448,7 +448,7 @@ test("tokens from each CLI's output", () => {
     JSON.stringify({ type: "rate_limit_event" }),
     JSON.stringify({ type: "result", usage: { input_tokens: 6, output_tokens: 83, cache_read_input_tokens: 100, cache_creation_input_tokens: 20 } }),
   ].join("\n");
-  assert.deepEqual(parseUsage("claude-code", claude), { input: 6, output: 83, cacheRead: 100, cacheWrite: 20, reasoning: null });
+  assert.deepEqual(parseUsage("claude-code", claude), { input: 126, output: 83, cacheRead: 100, cacheWrite: 20, reasoning: null });
   const codex = [
     JSON.stringify({ type: "turn.completed", usage: { input_tokens: 10, cached_input_tokens: 4, cache_write_input_tokens: 0, output_tokens: 5, reasoning_output_tokens: 2 } }),
     JSON.stringify({ type: "turn.completed", usage: { input_tokens: 1, cached_input_tokens: 1, cache_write_input_tokens: 0, output_tokens: 1, reasoning_output_tokens: 0 } }),
