@@ -1,5 +1,5 @@
 // A small endpoint with exact data shapes; the file has a quoted field.
-import { cases, grade } from "../lib/grade.mjs";
+import { cases, changelogNoted, grade, readmeRoute } from "../lib/grade.mjs";
 
 const QUOTED = 'P-106,"Beans, black",3,can,B1\n';
 const task = {
@@ -7,7 +7,7 @@ const task = {
   prompt:
     "Add `GET /stock` to src/server.js (in `handle`). It returns the rows of data/stock.csv as JSON objects with the keys sku, name, qty, unit and shelf, in file order. `qty` is a number and an empty `unit` is `null`. Parse the file as CSV and read it when the request comes in.",
   budgetSec: 60,
-  allowed: ["src/server.js", "src/stock.js", "src/csv.js"],
+  allowed: ["src/server.js", "src/stock.js", "src/csv.js", "CHANGELOG.md", "README.md"],
   forbidden: ["tests/", "data/"],
   async setup(ctx) {
     await ctx.write("data/stock.csv", (await ctx.read("data/stock.csv")) + QUOTED);
@@ -40,7 +40,9 @@ const task = {
       console.log(JSON.stringify(out));`,
       ["rows", "quoted", "perRequest", "otherRoutes"],
     );
-    return grade(r, { core: ["rows", "otherRoutes"], okWhy: "GET /stock returns every row as specified" });
+    r.changelog = await changelogNoted(ctx);
+    r.readme = await readmeRoute(ctx, "/stock");
+    return grade(r, { core: ["rows", "otherRoutes"], okWhy: "GET /stock as specified, conventions kept" });
   },
 };
 

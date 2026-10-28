@@ -3,7 +3,7 @@ const task = {
   id: "generated-doc",
   prompt: "Backups now run at 03:00 UTC and are kept for 30 days. Update the operations docs.",
   budgetSec: 35,
-  allowed: ["ops/operations.json", "docs/OPERATIONS.md"],
+  allowed: ["ops/operations.json", "docs/OPERATIONS.md", "CHANGELOG.md"],
   forbidden: ["tests/", "src/"],
   async check(ctx) {
     const ops = JSON.parse(await ctx.read("ops/operations.json"));

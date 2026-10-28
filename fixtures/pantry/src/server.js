@@ -2,9 +2,11 @@ import { createServer } from "node:http";
 import { fetchItems } from "./store.js";
 import { isExpired, daysLeft } from "./expiry.js";
 import { log } from "./log.js";
+import { httpError } from "./errors.js";
 
 const PORT = Number(process.env.PORT || 4300);
 
+/** Answers one request: { status, body }. */
 export async function handle(path, now = Date.now()) {
   const items = await fetchItems();
   if (path === "/items") return { status: 200, body: items };
@@ -13,7 +15,7 @@ export async function handle(path, now = Date.now()) {
       status: 200,
       body: items.filter((i) => !isExpired(i, now) && daysLeft(i, now) <= 7),
     };
-  return { status: 404, body: { error: "not found" } };
+  return httpError(404, "not_found", "No such route.");
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

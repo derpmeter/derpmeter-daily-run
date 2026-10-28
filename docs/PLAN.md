@@ -112,6 +112,8 @@ sh bin/install.sh                           # launchd, 매일 03:30 (로컬 시�
 - **매 시행 기록:** 실행 하나가 한 시행이다. 이름은 `<날짜>-<HHMM>`(UTC)이고 지우거나 덮어쓰지 않는다. DB `lab_votes`의 키에 `run`이 들어가고(마이그레이션 033), 원본 결과는 `results/<run>/`에 남는다. `kind`가 daily(launchd)면 주간 비교에, tuning(난이도 실험)이면 시행 목록에만 쓴다.
 - **부분 점수:** 잡일마다 숨긴 사례가 여럿이다. 핵심 사례는 다 맞고 나머지 일부를 놓치면 "partly done" Meh다. 핵심을 놓치면 기존 규칙(정직한 blocked는 Meh, 거짓 done은 Dumb)을 따른다.
 - **잡일 12개:** 기존 10개에 expiry-boundary(UTC 날짜 경계)와 paginate-items(검증 포함)를 더했다. stock-route는 따옴표가 든 CSV 행, expiring-days는 입력 검증을 확인한다.
+- **튜닝 1회차 (2026-10-28-0225):** Claude 2개, Codex 2개 모델은 숨긴 사례까지 모두 Smart였다. Argon은 12개 모두 시간 초과 Meh였다. 명세 속 경계 사례만으로는 강한 모델이 갈리지 않았다.
+- **2회차 변경:** 실제로 자주 놓치는 프로젝트 규칙 4개를 AGENTS.md에 넣고, 해당하는 모든 잡일에서 부분 점수로 확인한다. 규칙은 API 오류를 `httpError` 형식으로 보내기, 새 라우트를 README 목록에 올리기, 사용자에게 보이는 변경을 CHANGELOG `## Unreleased`에 적기, export 함수에 한 줄 JSDoc 달기다. 릴리스는 `## Unreleased`를 버전 이름으로 바꾸는 단계를 더했다.
 - **시간 예산:** 10-28 측정값 중앙값의 2.5배(최소 30초)로 정했다. Argon은 중앙값의 3~5배가 걸려 too_slow Meh를 받는다. 실제로 느린 것이다.
 
 ## 2026-10-28 판정 공정성 수정

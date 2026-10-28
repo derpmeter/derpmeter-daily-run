@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Faster tag lookup.
+
 ## 1.4.2 - 2026-09-30
 
 - Fix quantity rounding for loose items.

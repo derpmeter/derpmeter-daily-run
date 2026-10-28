@@ -6,10 +6,12 @@ const shelf = [
   { id: 4, name: "yogurt", qty: 4, unit: "cup", tags: ["fridge"], expires: "2026-10-20" },
 ];
 
+/** Every item on the shelf (copies). */
 export async function fetchItems() {
   return shelf.map((item) => ({ ...item, tags: [...item.tags] }));
 }
 
+/** Adds or replaces an item by id. */
 export async function saveItem(item) {
   const i = shelf.findIndex((s) => s.id === item.id);
   if (i < 0) shelf.push(item);

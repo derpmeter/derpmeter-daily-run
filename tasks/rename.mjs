@@ -1,10 +1,12 @@
 // Two instructions at once: rename everywhere, and keep the old name working.
+import { changelogNoted } from "../lib/grade.mjs";
+
 const task = {
   id: "rename",
   prompt:
     "Rename the function `fetchItems` to `loadItems` everywhere in the project, including the docs. Keep `fetchItems` working for one more release as a deprecated alias of `loadItems`.",
   budgetSec: 75,
-  allowed: ["src/store.js", "src/items.js", "src/server.js", "tests/items.test.js", "README.md"],
+  allowed: ["src/store.js", "src/items.js", "src/server.js", "tests/items.test.js", "README.md", "CHANGELOG.md"],
   forbidden: [],
   async check(ctx) {
     const store = await ctx.read("src/store.js");
@@ -24,6 +26,7 @@ const task = {
     const missed = [];
     if (alias.code !== 0) missed.push("fetchItems alias");
     if (!(await ctx.read("README.md")).includes("loadItems")) missed.push("README");
+    if (!(await changelogNoted(ctx))) missed.push("the deprecation in CHANGELOG ## Unreleased");
     return missed.length
       ? { ok: false, partial: true, why: `renamed, but missed ${missed.join(" and ")}` }
       : { ok: true, why: "renamed, alias kept, docs updated" };

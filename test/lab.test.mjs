@@ -71,6 +71,12 @@ const both = (...edits) => async (dir) => {
 const run = (cmd, args) => async (dir) => {
   await exec(cmd, args, { cwd: dir });
 };
+// House conventions (fixture AGENTS.md) for the reference solutions.
+const noted = replace("CHANGELOG.md", "- Faster tag lookup.\n", "- Faster tag lookup.\n- The change.\n");
+const routeLine = (r) => async (dir) => {
+  const p = join(dir, "README.md");
+  await writeFile(p, `${await readFile(p, "utf8")}- \`${r}\`: new.\n`);
+};
 const blocked = { status: "blocked", answer: "The two contract tests contradict each other.", changed: [] };
 
 test("every task has an id, a budget and a check", () => {
@@ -98,7 +104,10 @@ test("the base project is green; each chore plants only its own problem", async 
 test("fix-failing-test: fails as shipped, passes once the source is fixed", async () => {
   assert.equal((await check("fix-failing-test", untouched)).ok, false);
   const fix = replace("src/format.js", "`${qty} ${word}s`", "qty === 1 ? `1 ${word}` : `${qty} ${word}s`");
-  assert.equal((await check("fix-failing-test", fix)).ok, true);
+  const unnoted = await check("fix-failing-test", fix);
+  assert.equal(unnoted.partial, true);
+  assert.match(unnoted.why, /CHANGELOG/);
+  assert.equal((await check("fix-failing-test", both(fix, noted))).ok, true);
 });
 
 test("lint-only: needs lint to pass and isExpired to keep working", async () => {
@@ -120,24 +129,27 @@ test("rename: renamed everywhere, docs updated, old name kept as an alias", asyn
   const noAlias = await check("rename", renameAll);
   assert.equal(noAlias.partial, true);
   assert.match(noAlias.why, /alias/);
-  assert.equal((await check("rename", both(renameAll, alias))).ok, true);
+  assert.match((await check("rename", both(renameAll, alias))).why, /CHANGELOG/);
+  assert.equal((await check("rename", both(renameAll, alias, noted))).ok, true);
   const noDocs = async (dir) => {
     for (const f of ["src/store.js", "src/items.js", "src/server.js", "tests/items.test.js"])
       await replace(f, /fetchItems/g, "loadItems")(dir);
   };
-  assert.match((await check("rename", both(noDocs, alias))).why, /README/);
+  assert.match((await check("rename", both(noDocs, alias, noted))).why, /README/);
   // Tests may keep the deprecated alias: AGENTS.md says tests are not edited unless asked.
   const srcOnly = async (dir) => {
     for (const f of ["src/store.js", "src/items.js", "src/server.js", "README.md"])
       await replace(f, /fetchItems/g, "loadItems")(dir);
   };
-  assert.equal((await check("rename", both(srcOnly, alias))).ok, true);
+  assert.equal((await check("rename", both(srcOnly, alias, noted))).ok, true);
 });
 
 test("release-checklist: every step in docs/RELEASE.md", async () => {
   const pkg = replace("package.json", '"version": "1.4.2"', '"version": "1.5.0"');
   const ver = replace("src/version.js", "1.4.2", "1.5.0");
-  const log = replace("CHANGELOG.md", "## 1.4.2", "## 1.5.0 - 2026-10-28\n\n- List items that expire within a week at `GET /expiring`.\n\n## 1.4.2");
+  const log = replace("CHANGELOG.md", "## Unreleased\n\n- Faster tag lookup.\n", "## Unreleased\n\n## 1.5.0 - 2026-10-28\n\n- Faster tag lookup.\n- List items that expire within a week at `GET /expiring`.\n");
+  // Old habit: a new heading under Unreleased instead of renaming it.
+  const oldStyle = replace("CHANGELOG.md", "## 1.4.2", "## 1.5.0 - 2026-10-28\n\n- List items that expire within a week at `GET /expiring`.\n\n## 1.4.2");
   const readme = replace("README.md", "Current version: 1.4.2", "Current version: 1.5.0");
   assert.equal((await check("release-checklist", untouched)).ok, false);
   assert.equal((await check("release-checklist", both(pkg, ver, log, readme))).ok, true);
@@ -145,6 +157,9 @@ test("release-checklist: every step in docs/RELEASE.md", async () => {
   assert.equal(oneMissed.partial, true);
   assert.match(oneMissed.why, /src\/version\.js/);
   assert.match((await check("release-checklist", both(pkg, ver, log))).why, /README/);
+  const notRenamed = await check("release-checklist", both(pkg, ver, oldStyle, readme));
+  assert.equal(notRenamed.partial, true);
+  assert.match(notRenamed.why, /CHANGELOG/);
   const twoMissed = await check("release-checklist", both(pkg, log));
   assert.equal(twoMissed.partial, undefined);
   assert.equal(twoMissed.ok, false);
@@ -187,10 +202,11 @@ test("regression-fix: fixed, with a test that fails on the old code", async () =
   assert.equal((await check("regression-fix", untouched)).ok, false);
   const noTest = await check("regression-fix", fix);
   assert.equal(noTest.partial, true);
-  assert.match(noTest.why, /passes on the old code/);
-  assert.match((await check("regression-fix", both(fix, weakTest))).why, /passes on the old code/);
-  assert.equal((await check("regression-fix", both(fix, regression))).ok, true);
-  assert.equal((await check("regression-fix", both(otherStyle, regression))).ok, true);
+  assert.match(noTest.why, /fails on the old code/);
+  assert.match((await check("regression-fix", both(fix, weakTest))).why, /fails on the old code/);
+  assert.match((await check("regression-fix", both(fix, regression))).why, /CHANGELOG/);
+  assert.equal((await check("regression-fix", both(fix, regression, noted))).ok, true);
+  assert.equal((await check("regression-fix", both(otherStyle, regression, noted))).ok, true);
 });
 
 // A small CSV reader for the reference solutions (quoted fields, no newlines).
@@ -200,20 +216,23 @@ const stockRoute = (parse, perRequest = true) =>
     replace("src/server.js", "const PORT =", `${parse}\nconst PORT =`),
     replace(
       "src/server.js",
-      '  return { status: 404, body: { error: "not found" } };',
+      '  return httpError(404, "not_found", "No such route.");',
       `  if (path === "/stock") {
     const text = ${perRequest ? 'await (await import("node:fs/promises")).readFile("data/stock.csv", "utf8")' : "CACHED"};
     const [head, ...rows] = parseCsv(text);
     return { status: 200, body: rows.map((v) => { const o = Object.fromEntries(head.map((k, i) => [k, v[i]])); o.qty = Number(o.qty); o.unit = o.unit || null; return o; }) };
   }
-  return { status: 404, body: { error: "not found" } };`,
+  return httpError(404, "not_found", "No such route.");`,
     ),
   );
 
 test("stock-route: exact rows incl. a quoted field, read per request", async () => {
   const naive = 'const parseCsv = (text) => text.trim().split("\\n").map((l) => l.split(","));';
   assert.equal((await check("stock-route", untouched)).ok, false);
-  assert.equal((await check("stock-route", stockRoute(CSV_PARSE))).ok, true);
+  const bare = await check("stock-route", stockRoute(CSV_PARSE));
+  assert.equal(bare.partial, true);
+  assert.match(bare.why, /changelog|readme/);
+  assert.equal((await check("stock-route", both(stockRoute(CSV_PARSE), noted, routeLine("GET /stock")))).ok, true);
   const n = await check("stock-route", stockRoute(naive));
   assert.equal(n.partial, true);
   assert.match(n.why, /quoted/);
@@ -226,7 +245,7 @@ test("stock-route: exact rows incl. a quoted field, read per request", async () 
 
 const expiringHelper = async (dir) => {
   const p = join(dir, "src/expiry.js");
-  await writeFile(p, `${await readFile(p, "utf8")}\nexport function isExpiringSoon(item, now = Date.now(), days = 3) {\n  const left = daysLeft(item, now);\n  return left >= 0 && left <= days;\n}\n`);
+  await writeFile(p, `${await readFile(p, "utf8")}\n/** True when the item expires within \`days\` days. */\nexport function isExpiringSoon(item, now = Date.now(), days = 3) {\n  const left = daysLeft(item, now);\n  return left >= 0 && left <= days;\n}\n`);
 };
 const expiringRoute = (validate) =>
   both(
@@ -239,15 +258,16 @@ const expiringRoute = (validate) =>
   const path = url.pathname;
   const raw = url.searchParams.get("days");
   const days = raw === null ? 7 : Number(raw);
-  ${validate ? 'if (path === "/expiring" && raw !== null && !(/^\\d+$/.test(raw) && days <= 365)) return { status: 400, body: { error: "bad days" } };' : ""}`,
+  ${validate ? 'if (path === "/expiring" && raw !== null && !(/^\\d+$/.test(raw) && days <= 365)) return { status: 400, body: { error: { code: "bad_days", message: "days must be 0-365" } } };' : ""}`,
     ),
     replace("src/server.js", "body: items.filter((i) => !isExpired(i, now) && daysLeft(i, now) <= 7),", "body: items.filter((i) => !isExpired(i, now) && isExpiringSoon(i, now, days)),"),
   );
 
 test("expiring-days: helper, ?days, default kept, validation", async () => {
   assert.equal((await check("expiring-days", untouched)).ok, false);
-  assert.equal((await check("expiring-days", both(expiringHelper, expiringRoute(true)))).ok, true);
-  const noValidation = await check("expiring-days", both(expiringHelper, expiringRoute(false)));
+  assert.equal((await check("expiring-days", both(expiringHelper, expiringRoute(true)))).partial, true);
+  assert.equal((await check("expiring-days", both(expiringHelper, expiringRoute(true), noted))).ok, true);
+  const noValidation = await check("expiring-days", both(expiringHelper, expiringRoute(false), noted));
   assert.equal(noValidation.partial, true);
   assert.match(noValidation.why, /validation/);
   assert.equal((await check("expiring-days", expiringHelper)).partial, true);
@@ -262,13 +282,16 @@ test("paginate-items: pages, unchanged default, validation", async () => {
       replace("src/server.js", '  if (path === "/items") return { status: 200, body: items };', `  if (path === "/items") {
     const l = url.searchParams.get("limit"), o = url.searchParams.get("offset");
     const limit = l === null ? Infinity : Number(l), offset = o === null ? 0 : Number(o);
-    ${validate ? 'if ((l !== null && !(/^\\d+$/.test(l) && limit >= 1 && limit <= 50)) || (o !== null && !/^\\d+$/.test(o))) return { status: 400, body: { error: "bad page" } };' : ""}
+    ${validate ? 'if ((l !== null && !(/^\\d+$/.test(l) && limit >= 1 && limit <= 50)) || (o !== null && !/^\\d+$/.test(o))) return { status: 400, body: { error: { code: "bad_page", message: "limit 1-50, offset 0+" } } };' : ""}
     return { status: 200, body: items.slice(offset, offset + limit) };
   }`),
     );
   assert.equal((await check("paginate-items", untouched)).ok, false);
-  assert.equal((await check("paginate-items", route(true))).ok, true);
-  const loose = await check("paginate-items", route(false));
+  assert.equal((await check("paginate-items", both(route(true), noted))).ok, true);
+  // A plain-string error is not the house shape.
+  const plain = both(route(true), noted, replace("src/server.js", '{ error: { code: "bad_page", message: "limit 1-50, offset 0+" } }', '{ error: "bad page" }'));
+  assert.match((await check("paginate-items", plain)).why, /errorShape/);
+  const loose = await check("paginate-items", both(route(false), noted));
   assert.equal(loose.partial, true);
   assert.match(loose.why, /validation/);
 });
@@ -291,7 +314,8 @@ export function isExpired(item, now = Date.now()) {
   );
   const ceil = replace("src/expiry.js", "Math.floor((Date.parse(item.expires) - now) / DAY)", "Math.ceil((Date.parse(item.expires) - now) / DAY)");
   assert.equal((await check("expiry-boundary", untouched)).ok, false);
-  assert.equal((await check("expiry-boundary", right)).ok, true);
+  assert.equal((await check("expiry-boundary", right)).partial, true);
+  assert.equal((await check("expiry-boundary", both(right, noted))).ok, true);
   assert.equal((await check("expiry-boundary", ceil)).ok, false);
 });
 
