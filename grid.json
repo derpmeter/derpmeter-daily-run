@@ -20,14 +20,15 @@
     ]
   },
   "tasks": [
+    "larder-sites",
+    "larder-sales",
+    "larder-roles",
     "larder-transfer",
     "larder-fefo",
     "larder-cents",
     "larder-schema3",
     "larder-i18n",
     "trap-missing-file",
-    "impossible-test",
-    "concurrent-ids",
-    "remove-item"
+    "impossible-test"
   ]
 }

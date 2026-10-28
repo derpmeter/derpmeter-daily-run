@@ -22,3 +22,18 @@ Current version: 2.3.0.
 - `POST /recipes/:id/cook`: cook portions of a recipe.
 - `GET /reports/stock-value`, `GET /reports/waste?from=&to=`: reports.
 - `GET /alerts`: batches expiring soon and items below their minimum.
+- `GET /suppliers`, `GET /suppliers/:id/prices?on=`, `POST /prices`,
+  `GET /items/:id/best-price`: suppliers and price lists.
+- `GET /dishes`, `POST /dishes`, `GET /reports/margins`,
+  `GET /recipes/:id/cost`: the menu and recipe costing.
+- `GET /forecast/use/:itemId`, `GET /forecast/reorder`: usage and reorder
+  suggestions.
+- `GET /outbox`, `POST /outbox/:id/sent`: notifications waiting to be sent.
+- `POST /import/items`: import items from CSV.
+- `POST /jobs/nightly`: run the nightly checks (also run by cron).
+- `POST /stocktakes`, `POST /stocktakes/:id/counts`,
+  `POST /stocktakes/:id/finish`: count stock and book differences.
+- `PUT /items/:id/allergens`, `GET /recipes/:id/allergens`,
+  `GET /reports/allergens`: allergens.
+- `POST /temperatures`, `GET /reports/temperatures?day=`: temperature logs.
+- `GET /export/ledger.csv`, `GET /export/stock.csv`: CSV exports.

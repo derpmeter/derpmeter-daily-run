@@ -1,55 +1,497 @@
 {
   "schemaVersion": 2,
-  "seq": { "item": 6, "batch": 9, "order": 3, "supplier": 2, "movement": 12, "recipe": 2 },
+  "seq": {
+    "item": 6,
+    "batch": 9,
+    "order": 3,
+    "supplier": 2,
+    "movement": 12,
+    "recipe": 2,
+    "dish": 3,
+    "message": 0,
+    "stocktake": 0,
+    "reading": 2
+  },
   "locations": [
-    { "id": "fridge", "name": "Walk-in fridge", "tempC": 3 },
-    { "id": "freezer", "name": "Freezer", "tempC": -18 },
-    { "id": "dry", "name": "Dry store", "tempC": 18 }
+    {
+      "id": "fridge",
+      "name": "Walk-in fridge",
+      "tempC": 3
+    },
+    {
+      "id": "freezer",
+      "name": "Freezer",
+      "tempC": -18
+    },
+    {
+      "id": "dry",
+      "name": "Dry store",
+      "tempC": 18
+    }
   ],
   "suppliers": [
-    { "id": 1, "name": "Green Farm", "leadDays": 2 },
-    { "id": 2, "name": "Harbor Dairy", "leadDays": 1 }
+    {
+      "id": 1,
+      "name": "Green Farm",
+      "leadDays": 2
+    },
+    {
+      "id": 2,
+      "name": "Harbor Dairy",
+      "leadDays": 1
+    }
   ],
   "items": [
-    { "id": 1, "sku": "VEG-ONION", "name": "onion", "unit": "kg", "minQty": 5, "supplierId": 1, "priceCents": 180, "tags": ["veg"] },
-    { "id": 2, "sku": "DAI-MILK", "name": "milk", "unit": "l", "minQty": 6, "supplierId": 2, "priceCents": 129, "tags": ["dairy"] },
-    { "id": 3, "sku": "DAI-BUTTER", "name": "butter", "unit": "kg", "minQty": 1, "supplierId": 2, "priceCents": 945, "tags": ["dairy"] },
-    { "id": 4, "sku": "DRY-FLOUR", "name": "flour", "unit": "kg", "minQty": 10, "supplierId": 1, "priceCents": 85, "tags": ["dry"] },
-    { "id": 5, "sku": "VEG-THYME", "name": "thyme", "unit": "bunch", "minQty": 2, "supplierId": 1, "priceCents": 133, "tags": ["veg", "herb"] },
-    { "id": 6, "sku": "FRZ-STOCK", "name": "beef stock", "unit": "l", "minQty": 4, "supplierId": 2, "priceCents": 415, "tags": ["frozen"] }
+    {
+      "id": 1,
+      "sku": "VEG-ONION",
+      "name": "onion",
+      "unit": "kg",
+      "minQty": 5,
+      "supplierId": 1,
+      "priceCents": 180,
+      "tags": [
+        "veg"
+      ],
+      "allergens": []
+    },
+    {
+      "id": 2,
+      "sku": "DAI-MILK",
+      "name": "milk",
+      "unit": "l",
+      "minQty": 6,
+      "supplierId": 2,
+      "priceCents": 129,
+      "tags": [
+        "dairy"
+      ],
+      "allergens": [
+        "milk"
+      ]
+    },
+    {
+      "id": 3,
+      "sku": "DAI-BUTTER",
+      "name": "butter",
+      "unit": "kg",
+      "minQty": 1,
+      "supplierId": 2,
+      "priceCents": 945,
+      "tags": [
+        "dairy"
+      ],
+      "allergens": [
+        "milk"
+      ]
+    },
+    {
+      "id": 4,
+      "sku": "DRY-FLOUR",
+      "name": "flour",
+      "unit": "kg",
+      "minQty": 10,
+      "supplierId": 1,
+      "priceCents": 85,
+      "tags": [
+        "dry"
+      ],
+      "allergens": [
+        "gluten"
+      ]
+    },
+    {
+      "id": 5,
+      "sku": "VEG-THYME",
+      "name": "thyme",
+      "unit": "bunch",
+      "minQty": 2,
+      "supplierId": 1,
+      "priceCents": 133,
+      "tags": [
+        "veg",
+        "herb"
+      ],
+      "allergens": []
+    },
+    {
+      "id": 6,
+      "sku": "FRZ-STOCK",
+      "name": "beef stock",
+      "unit": "l",
+      "minQty": 4,
+      "supplierId": 2,
+      "priceCents": 415,
+      "tags": [
+        "frozen"
+      ],
+      "allergens": [
+        "celery"
+      ]
+    }
   ],
   "batches": [
-    { "id": 1, "itemId": 1, "lot": "GF-1018", "qty": 4, "receivedOn": "2026-10-18", "expires": "2026-11-15", "location": "dry" },
-    { "id": 2, "itemId": 1, "lot": "GF-1025", "qty": 6, "receivedOn": "2026-10-25", "expires": "2026-11-22", "location": "dry" },
-    { "id": 3, "itemId": 2, "lot": "HD-1026", "qty": 8, "receivedOn": "2026-10-26", "expires": "2026-11-02", "location": "fridge" },
-    { "id": 4, "itemId": 2, "lot": "HD-1022", "qty": 2, "receivedOn": "2026-10-22", "expires": "2026-10-29", "location": "fridge" },
-    { "id": 5, "itemId": 3, "lot": "HD-1020", "qty": 1.5, "receivedOn": "2026-10-20", "expires": "2026-12-20", "location": "fridge" },
-    { "id": 6, "itemId": 4, "lot": "GF-0930", "qty": 12.5, "receivedOn": "2026-09-30", "expires": "2027-03-30", "location": "dry" },
-    { "id": 7, "itemId": 5, "lot": "GF-1026", "qty": 3, "receivedOn": "2026-10-26", "expires": "2026-11-01", "location": "fridge" },
-    { "id": 8, "itemId": 6, "lot": "HD-1001", "qty": 5, "receivedOn": "2026-10-01", "expires": "2027-01-01", "location": "freezer" },
-    { "id": 9, "itemId": 6, "lot": "HD-1015", "qty": 3, "receivedOn": "2026-10-15", "expires": "2027-01-15", "location": "freezer" }
+    {
+      "id": 1,
+      "itemId": 1,
+      "lot": "GF-1018",
+      "qty": 4,
+      "receivedOn": "2026-10-18",
+      "expires": "2026-11-15",
+      "location": "dry"
+    },
+    {
+      "id": 2,
+      "itemId": 1,
+      "lot": "GF-1025",
+      "qty": 6,
+      "receivedOn": "2026-10-25",
+      "expires": "2026-11-22",
+      "location": "dry"
+    },
+    {
+      "id": 3,
+      "itemId": 2,
+      "lot": "HD-1026",
+      "qty": 8,
+      "receivedOn": "2026-10-26",
+      "expires": "2026-11-02",
+      "location": "fridge"
+    },
+    {
+      "id": 4,
+      "itemId": 2,
+      "lot": "HD-1022",
+      "qty": 2,
+      "receivedOn": "2026-10-22",
+      "expires": "2026-10-29",
+      "location": "fridge"
+    },
+    {
+      "id": 5,
+      "itemId": 3,
+      "lot": "HD-1020",
+      "qty": 1.5,
+      "receivedOn": "2026-10-20",
+      "expires": "2026-12-20",
+      "location": "fridge"
+    },
+    {
+      "id": 6,
+      "itemId": 4,
+      "lot": "GF-0930",
+      "qty": 12.5,
+      "receivedOn": "2026-09-30",
+      "expires": "2027-03-30",
+      "location": "dry"
+    },
+    {
+      "id": 7,
+      "itemId": 5,
+      "lot": "GF-1026",
+      "qty": 3,
+      "receivedOn": "2026-10-26",
+      "expires": "2026-11-01",
+      "location": "fridge"
+    },
+    {
+      "id": 8,
+      "itemId": 6,
+      "lot": "HD-1001",
+      "qty": 5,
+      "receivedOn": "2026-10-01",
+      "expires": "2027-01-01",
+      "location": "freezer"
+    },
+    {
+      "id": 9,
+      "itemId": 6,
+      "lot": "HD-1015",
+      "qty": 3,
+      "receivedOn": "2026-10-15",
+      "expires": "2027-01-15",
+      "location": "freezer"
+    }
   ],
   "orders": [
-    { "id": 1, "supplierId": 1, "state": "received", "createdOn": "2026-10-23", "lines": [{ "itemId": 1, "qty": 6, "priceCents": 180 }] },
-    { "id": 2, "supplierId": 2, "state": "sent", "createdOn": "2026-10-27", "lines": [{ "itemId": 2, "qty": 12, "priceCents": 129 }, { "itemId": 3, "qty": 2, "priceCents": 945 }] },
-    { "id": 3, "supplierId": 1, "state": "draft", "createdOn": "2026-10-28", "lines": [{ "itemId": 4, "qty": 25, "priceCents": 85 }] }
+    {
+      "id": 1,
+      "supplierId": 1,
+      "state": "received",
+      "createdOn": "2026-10-23",
+      "lines": [
+        {
+          "itemId": 1,
+          "qty": 6,
+          "priceCents": 180
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "supplierId": 2,
+      "state": "sent",
+      "createdOn": "2026-10-27",
+      "lines": [
+        {
+          "itemId": 2,
+          "qty": 12,
+          "priceCents": 129
+        },
+        {
+          "itemId": 3,
+          "qty": 2,
+          "priceCents": 945
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "supplierId": 1,
+      "state": "draft",
+      "createdOn": "2026-10-28",
+      "lines": [
+        {
+          "itemId": 4,
+          "qty": 25,
+          "priceCents": 85
+        }
+      ]
+    }
   ],
   "recipes": [
-    { "id": 1, "name": "onion soup", "portions": 4, "ingredients": [{ "itemId": 1, "qty": 1.2 }, { "itemId": 3, "qty": 0.1 }, { "itemId": 6, "qty": 1.5 }, { "itemId": 5, "qty": 1 }] },
-    { "id": 2, "name": "bechamel", "portions": 10, "ingredients": [{ "itemId": 2, "qty": 2 }, { "itemId": 3, "qty": 0.2 }, { "itemId": 4, "qty": 0.2 }] }
+    {
+      "id": 1,
+      "name": "onion soup",
+      "portions": 4,
+      "ingredients": [
+        {
+          "itemId": 1,
+          "qty": 1.2
+        },
+        {
+          "itemId": 3,
+          "qty": 0.1
+        },
+        {
+          "itemId": 6,
+          "qty": 1.5
+        },
+        {
+          "itemId": 5,
+          "qty": 1
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "bechamel",
+      "portions": 10,
+      "ingredients": [
+        {
+          "itemId": 2,
+          "qty": 2
+        },
+        {
+          "itemId": 3,
+          "qty": 0.2
+        },
+        {
+          "itemId": 4,
+          "qty": 0.2
+        }
+      ]
+    }
   ],
   "movements": [
-    { "id": 1, "type": "receive", "batchId": 1, "qty": 4, "at": "2026-10-18T07:30:00Z", "ref": "order:0" },
-    { "id": 2, "type": "receive", "batchId": 2, "qty": 6, "at": "2026-10-25T07:10:00Z", "ref": "order:1" },
-    { "id": 3, "type": "receive", "batchId": 3, "qty": 8, "at": "2026-10-26T06:45:00Z", "ref": "order:0" },
-    { "id": 4, "type": "receive", "batchId": 4, "qty": 4, "at": "2026-10-22T06:50:00Z", "ref": "order:0" },
-    { "id": 5, "type": "consume", "batchId": 4, "qty": 2, "at": "2026-10-24T17:20:00Z", "ref": "recipe:2" },
-    { "id": 6, "type": "receive", "batchId": 5, "qty": 2, "at": "2026-10-20T06:40:00Z", "ref": "order:0" },
-    { "id": 7, "type": "consume", "batchId": 5, "qty": 0.5, "at": "2026-10-24T17:20:00Z", "ref": "recipe:2" },
-    { "id": 8, "type": "receive", "batchId": 6, "qty": 12.5, "at": "2026-09-30T08:00:00Z", "ref": "order:0" },
-    { "id": 9, "type": "receive", "batchId": 7, "qty": 3, "at": "2026-10-26T06:45:00Z", "ref": "order:0" },
-    { "id": 10, "type": "receive", "batchId": 8, "qty": 5, "at": "2026-10-01T09:00:00Z", "ref": "order:0" },
-    { "id": 11, "type": "receive", "batchId": 9, "qty": 3, "at": "2026-10-15T09:00:00Z", "ref": "order:0" },
-    { "id": 12, "type": "waste", "batchId": 4, "qty": 0, "at": "2026-10-27T22:00:00Z", "ref": "check" }
+    {
+      "id": 1,
+      "type": "receive",
+      "batchId": 1,
+      "qty": 4,
+      "at": "2026-10-18T07:30:00Z",
+      "ref": "order:0"
+    },
+    {
+      "id": 2,
+      "type": "receive",
+      "batchId": 2,
+      "qty": 6,
+      "at": "2026-10-25T07:10:00Z",
+      "ref": "order:1"
+    },
+    {
+      "id": 3,
+      "type": "receive",
+      "batchId": 3,
+      "qty": 8,
+      "at": "2026-10-26T06:45:00Z",
+      "ref": "order:0"
+    },
+    {
+      "id": 4,
+      "type": "receive",
+      "batchId": 4,
+      "qty": 4,
+      "at": "2026-10-22T06:50:00Z",
+      "ref": "order:0"
+    },
+    {
+      "id": 5,
+      "type": "consume",
+      "batchId": 4,
+      "qty": 2,
+      "at": "2026-10-24T17:20:00Z",
+      "ref": "recipe:2"
+    },
+    {
+      "id": 6,
+      "type": "receive",
+      "batchId": 5,
+      "qty": 2,
+      "at": "2026-10-20T06:40:00Z",
+      "ref": "order:0"
+    },
+    {
+      "id": 7,
+      "type": "consume",
+      "batchId": 5,
+      "qty": 0.5,
+      "at": "2026-10-24T17:20:00Z",
+      "ref": "recipe:2"
+    },
+    {
+      "id": 8,
+      "type": "receive",
+      "batchId": 6,
+      "qty": 12.5,
+      "at": "2026-09-30T08:00:00Z",
+      "ref": "order:0"
+    },
+    {
+      "id": 9,
+      "type": "receive",
+      "batchId": 7,
+      "qty": 3,
+      "at": "2026-10-26T06:45:00Z",
+      "ref": "order:0"
+    },
+    {
+      "id": 10,
+      "type": "receive",
+      "batchId": 8,
+      "qty": 5,
+      "at": "2026-10-01T09:00:00Z",
+      "ref": "order:0"
+    },
+    {
+      "id": 11,
+      "type": "receive",
+      "batchId": 9,
+      "qty": 3,
+      "at": "2026-10-15T09:00:00Z",
+      "ref": "order:0"
+    },
+    {
+      "id": 12,
+      "type": "waste",
+      "batchId": 4,
+      "qty": 0,
+      "at": "2026-10-27T22:00:00Z",
+      "ref": "check"
+    }
+  ],
+  "prices": [
+    {
+      "supplierId": 1,
+      "itemId": 1,
+      "priceCents": 175,
+      "validFrom": "2026-09-01"
+    },
+    {
+      "supplierId": 1,
+      "itemId": 1,
+      "priceCents": 180,
+      "validFrom": "2026-10-15"
+    },
+    {
+      "supplierId": 2,
+      "itemId": 1,
+      "priceCents": 178,
+      "validFrom": "2026-10-01"
+    },
+    {
+      "supplierId": 2,
+      "itemId": 2,
+      "priceCents": 129,
+      "validFrom": "2026-09-01"
+    },
+    {
+      "supplierId": 2,
+      "itemId": 3,
+      "priceCents": 945,
+      "validFrom": "2026-09-01"
+    },
+    {
+      "supplierId": 1,
+      "itemId": 4,
+      "priceCents": 85,
+      "validFrom": "2026-09-01"
+    },
+    {
+      "supplierId": 1,
+      "itemId": 5,
+      "priceCents": 133,
+      "validFrom": "2026-09-01"
+    },
+    {
+      "supplierId": 2,
+      "itemId": 6,
+      "priceCents": 415,
+      "validFrom": "2026-09-01"
+    }
+  ],
+  "dishes": [
+    {
+      "id": 1,
+      "name": "Onion soup",
+      "recipeId": 1,
+      "priceCents": 850,
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "Croque monsieur",
+      "recipeId": 2,
+      "priceCents": 1150,
+      "active": true
+    },
+    {
+      "id": 3,
+      "name": "Old soup",
+      "recipeId": 1,
+      "priceCents": 700,
+      "active": false
+    }
+  ],
+  "outbox": [],
+  "stocktakes": [],
+  "temperatures": [
+    {
+      "id": 1,
+      "location": "fridge",
+      "celsius": 3.5,
+      "at": "2026-10-28T06:00:00Z",
+      "by": "am",
+      "ok": true
+    },
+    {
+      "id": 2,
+      "location": "freezer",
+      "celsius": -12,
+      "at": "2026-10-28T06:02:00Z",
+      "by": "am",
+      "ok": false
+    }
   ]
 }

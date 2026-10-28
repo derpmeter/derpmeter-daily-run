@@ -37,3 +37,31 @@ These hold for every record, however it was made.
 ## Dates
 
 - Calendar dates are `YYYY-MM-DD` in UTC; instants are ISO 8601 strings.
+
+## Prices
+
+- A price list entry is valid from its `validFrom` day until the next entry
+  for the same supplier and item. An item's `priceCents` is the price used
+  for costing and stock value.
+
+## Notifications
+
+- Outbox messages have a unique `key`. Queueing a key that exists does
+  nothing, so jobs may run more than once.
+
+## Forecasts
+
+- Daily use is the consumed quantity over the 14 days before today, divided
+  by 14 (3 decimals).
+
+## Stock-takes
+
+- One open stock-take per location. Finishing it sets each counted batch to
+  its count and writes one `adjust` movement per changed batch, with the
+  direction in `ref` (`stocktake:<id>:up` or `:down`).
+
+## Food safety
+
+- Fridges must read at or below 5 °C and freezers at or below -15 °C. Each
+  of them needs at least one reading per day.
+- Allergens are the 14 EU allergens, stored lowercase and sorted.

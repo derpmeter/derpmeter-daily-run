@@ -9,6 +9,10 @@ Three layers; each only calls the one below it.
    the clock and never imports from `src/http/`.
 3. `src/db/`: the store (one JSON document) and schema migrations.
 
+Around the domain: `src/io/` (CSV reading and imports) and `src/jobs/`
+(scheduled work such as the nightly checks); both call the domain like the
+HTTP layer does.
+
 Shared helpers: `src/dates.js` (UTC calendar dates), `src/money.js` (integer
 cents), `src/errors.js` (error codes), `src/i18n/messages.js` (client text).
 

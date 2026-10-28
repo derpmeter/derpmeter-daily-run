@@ -12,8 +12,10 @@ import { itemRoutes } from "./routes/items.js";
 import { batchRoutes } from "./routes/batches.js";
 import { orderRoutes } from "./routes/orders.js";
 import { kitchenRoutes } from "./routes/kitchen.js";
+import { planningRoutes } from "./routes/planning.js";
+import { safetyRoutes } from "./routes/safety.js";
 
-const match = router([...itemRoutes, ...batchRoutes, ...orderRoutes, ...kitchenRoutes]);
+const match = router([...itemRoutes, ...batchRoutes, ...orderRoutes, ...kitchenRoutes, ...planningRoutes, ...safetyRoutes]);
 
 /** Builds the request handler over a store. `clock` returns now (ms). */
 export function createApp(store, { clock = () => Date.now() } = {}) {

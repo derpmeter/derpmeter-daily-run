@@ -80,7 +80,7 @@ const routeLine = (r) => async (dir) => {
 const blocked = { status: "blocked", answer: "The two contract tests contradict each other.", changed: [] };
 
 test("every task has an id, a budget and a check", () => {
-  assert.equal(Object.keys(tasks).length, 23);
+  assert.equal(Object.keys(tasks).length, 26);
   for (const [file, t] of Object.entries(tasks)) {
     assert.equal(t.id, file);
     assert.ok(t.budgetSec > 0 && typeof t.check === "function");
