@@ -9,7 +9,7 @@ const task = {
   fixture: "larder",
   prompt:
     "Bug report: cooking bechamel today took the new milk (lot HD-1026) although lot HD-1022 expires tomorrow. Fix it and add a regression test.",
-  budgetSec: 120,
+  budgetSec: 35,
   allowed: ["src/domain/batches.js", "src/domain/", "tests/", "CHANGELOG.md"],
   forbidden: ["data/"],
   async check(ctx) {

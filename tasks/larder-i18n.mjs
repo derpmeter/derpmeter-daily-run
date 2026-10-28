@@ -7,7 +7,7 @@ const task = {
   fixture: "larder",
   prompt:
     "Answer in the client's language: choose it from the request's `Accept-Language` header (`ko` or `en`, honoring q-values and region tags such as `ko-KR`; anything else falls back to `LARDER_LANG`), and give every error code a Korean message.",
-  budgetSec: 150,
+  budgetSec: 53,
   allowed: ["src/", "docs/API.md", "README.md", "CHANGELOG.md"],
   forbidden: ["tests/", "data/"],
   async check(ctx) {

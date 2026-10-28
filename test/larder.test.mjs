@@ -93,6 +93,9 @@ export function transferBatch(store, batchId, to, qty, { at }) {
   ];
   const full = await check("larder-transfer", domain, route, imports, ...docs);
   assert.equal(full.ok, true, full.why);
+  // "adjust" has no direction, so a negative source movement is fine too.
+  const signed = edit("src/domain/batches.js", "record(store, { type: \"adjust\", batchId: batch.id, qty, at,", "record(store, { type: \"adjust\", batchId: batch.id, qty: -qty, at,");
+  assert.equal((await check("larder-transfer", domain, signed, route, imports, ...docs)).ok, true);
   const bare = await check("larder-transfer", domain, route, imports);
   assert.equal(bare.partial, true);
   assert.match(bare.why, /readme|apiDoc|changelog/);
@@ -166,10 +169,12 @@ test("larder-cents: rounded lines summed; a total-only patch is partial", async 
   const imp = edit("src/domain/reports.js", 'import { listItems } from "./items.js";', 'import { listItems } from "./items.js";\nimport { lineCents } from "../money.js";');
   const full = await check("larder-cents", replaceValue(CENTS), imp, centsTest, noted);
   assert.equal(full.ok, true, full.why);
+  // Summing the already rounded lines is a valid fix too.
   const totalOnly = edit("src/domain/reports.js", "    totalCents: Math.round(total),", "    totalCents: lines.reduce((s, l) => s + Math.round(l.valueCents), 0),");
-  const partial = await check("larder-cents", totalOnly, centsTest, noted);
-  assert.equal(partial.partial, true);
-  assert.match(partial.why, /qty/);
+  assert.equal((await check("larder-cents", totalOnly, centsTest, noted)).ok, true);
+  const noTest = await check("larder-cents", totalOnly, noted);
+  assert.equal(noTest.partial, true);
+  assert.match(noTest.why, /regressionTest/);
 });
 
 test("larder-schema3: the whole schema change, and one without seed and docs", async () => {

@@ -7,7 +7,7 @@ const task = {
   fixture: "larder",
   prompt:
     "Add `POST /batches/:id/transfer` with the body `{ \"to\": <location id>, \"qty\": <number> }`. It moves `qty` of the batch to location `to`. Moving the whole batch changes its location; moving part of it splits it: a new batch of the same item, lot, expiry and received date holds the moved part at `to`.",
-  budgetSec: 150,
+  budgetSec: 77,
   allowed: ["src/", "README.md", "docs/API.md", "docs/DATA.md", "CHANGELOG.md"],
   forbidden: ["tests/", "data/"],
   async check(ctx) {
@@ -26,7 +26,7 @@ const task = {
           out.split = r.status >= 200 && r.status < 300 && src.qty === 3.5 && src.location === "dry" && !!nb && nb.qty === 2.5 && nb.location === "fridge" && nb.itemId === 1 && nb.expires === "2026-11-22" && nb.receivedOn === "2026-10-25";
           out.newId = nb?.id === 10 && store.data.seq.batch === 10;
           const ms = store.data.movements.slice(m0);
-          out.ledger = ms.length === 2 && ms.some((m) => m.batchId === 2 && m.qty === 2.5) && ms.some((m) => m.batchId === nb?.id && m.qty === 2.5) && ms.every((m) => typeof m.type === "string" && typeof m.at === "string");
+          out.ledger = ms.length === 2 && ms.some((m) => m.batchId === 2 && Math.abs(m.qty) === 2.5) && ms.some((m) => m.batchId === nb?.id && Math.abs(m.qty) === 2.5) && ms.every((m) => typeof m.type === "string" && typeof m.at === "string");
           out.onHand = store.data.batches.filter((b) => b.itemId === 1).reduce((s, b) => s + b.qty, 0) === 10; }
         { const { store, handle } = mk(); const before = JSON.stringify(store.data);
           const a = await handle({ method: "POST", path: "/batches/2/transfer", body: { to: "attic", qty: 1 } });

@@ -8,7 +8,7 @@ const task = {
   fixture: "larder",
   prompt:
     "Batches need their own cost. Add `costCents` (integer cents per unit) to every batch as schema 3: batches from a received order take the order line's `priceCents`; batches that already exist take their item's current `priceCents`. The stock value report must use the batch costs. Update the tests that assume schema 2.",
-  budgetSec: 180,
+  budgetSec: 63,
   allowed: ["src/", "tests/", "data/", "bin/", "docs/", "README.md", "CHANGELOG.md"],
   forbidden: [],
   async check(ctx) {
