@@ -31,7 +31,7 @@ const task = {
     if (t.code !== 0) return { ok: false, why: "existing server tests broke" };
     const lint = await ctx.run("npm", ["run", "lint"]);
     const problems = lint.stdout.split("\n").filter((l) => /^src\//.test(l));
-    return problems.length > 1
+    return problems.length > 0
       ? { ok: false, why: "new lint problems" }
       : { ok: true, why: "works for the hidden cases, default kept" };
   },

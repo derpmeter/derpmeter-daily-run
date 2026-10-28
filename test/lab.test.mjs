@@ -81,6 +81,20 @@ test("every task has an id, a budget and a check", () => {
   }
 });
 
+test("the base project is green; each chore plants only its own problem", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "lab-base-"));
+  try {
+    await cp(FIXTURE, dir, { recursive: true });
+    assert.equal((await exec("npm", ["test"], { cwd: dir })).code, 0);
+    assert.equal((await exec("npm", ["run", "lint"], { cwd: dir })).code, 0);
+    const before = (await exec("node", ["tools/gen-docs.mjs"], { cwd: dir })).code;
+    assert.equal(before, 0);
+    assert.equal(await readFile(join(dir, "docs/OPERATIONS.md"), "utf8"), await readFile(join(FIXTURE, "docs/OPERATIONS.md"), "utf8"));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("fix-failing-test: fails as shipped, passes once the source is fixed", async () => {
   assert.equal((await check("fix-failing-test", untouched)).ok, false);
   const fix = replace("src/format.js", "`${qty} ${word}s`", "qty === 1 ? `1 ${word}` : `${qty} ${word}s`");
@@ -110,6 +124,12 @@ test("rename: renamed everywhere, docs updated, old name kept as an alias", asyn
       await replace(f, /fetchItems/g, "loadItems")(dir);
   };
   assert.match((await check("rename", both(noDocs, alias))).why, /README/);
+  // Tests may keep the deprecated alias: AGENTS.md says tests are not edited unless asked.
+  const srcOnly = async (dir) => {
+    for (const f of ["src/store.js", "src/items.js", "src/server.js", "README.md"])
+      await replace(f, /fetchItems/g, "loadItems")(dir);
+  };
+  assert.equal((await check("rename", both(srcOnly, alias))).ok, true);
 });
 
 test("release-checklist: every step in docs/RELEASE.md", async () => {
@@ -417,6 +437,7 @@ test("default effort passes no effort flag; Argon keeps its pinned id", () => {
   const [, claude] = agentCommand("claude-code", { ...base, model: "m", effort: "" });
   assert.ok(claude.includes("--no-session-persistence") && claude.includes("stream-json"));
   assert.match(claude[claude.indexOf("--allowedTools") + 1], /Bash\(npm run:\*\)/);
+  assert.ok(!agy.includes("--sandbox"));
   const [, codex] = agentCommand("codex", { ...base, model: "m", effort: "" });
   assert.ok(codex.includes("--ephemeral") && codex.includes("--json"));
 });

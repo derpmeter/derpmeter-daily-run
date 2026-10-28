@@ -12,5 +12,5 @@ export function isExpired(item, now = Date.now()) {
     log.warn("item expired", { id: item.id, days: left });
     return true;
   }
-  return left == -0;
+  return left === 0;
 }

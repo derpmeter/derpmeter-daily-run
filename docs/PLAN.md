@@ -88,7 +88,7 @@ Antigravity만 예외로 `gemini-4-argon-medium`을 고정한다. agy 모델 id�
 
 - Claude Code: `--setting-sources project --strict-mcp-config --no-session-persistence`. 런이 만든 `~/.claude/projects/<복사본 경로>`가 있으면 지운다.
 - Codex: `--ignore-user-config --ephemeral`.
-- Antigravity: 끌 옵션이 없다. 전역 `~/.gemini/GEMINI.md`와 사용자 MCP 서버를 읽는다. 감수하고 결과에 `isolated: false`로 남긴다. 런이 끝나면 그 대화의 `conversations/`, `brain/`, `annotations/`, `presence/`, `implicit/` 파일과 `conversation_summaries.db` 행, 최근 작업 폴더 목록 항목을 지운다. 실행 전후로 Lab 복사본 경로의 대화를 한 번 더 쓸어낸다.
+- Antigravity: `--sandbox`를 쓰지 않는다. 그 샌드박스는 명령이 작업 폴더 안에 쓰는 것까지 막아서(`npm run docs`가 EPERM) 다른 CLI보다 불리했다. 대신 버리는 복사본에서만 돈다. 개인 설정을 끌 옵션도 없다. 전역 `~/.gemini/GEMINI.md`와 사용자 MCP 서버를 읽는다. 감수하고 결과에 `isolated: false`로 남긴다. 런이 끝나면 그 대화의 `conversations/`, `brain/`, `annotations/`, `presence/`, `implicit/` 파일과 `conversation_summaries.db` 행, 최근 작업 폴더 목록 항목을 지운다. 실행 전후로 Lab 복사본 경로의 대화를 한 번 더 쓸어낸다.
 - 픽스처는 런마다 새로 복사하고 끝나면 지운다.
 
 ## 운영
@@ -106,6 +106,16 @@ sh bin/install.sh                           # launchd, 매일 03:30 (로컬 시�
 - Mac이 자고 있으면 깨어날 때 돈다. 꺼져 있으면 그날은 빈다.
 - 로그: `~/Library/Logs/derpmeter-lab-daily.log`.
 - 감독: Claude Code 세션 "derpmeter-index"가 2026-12-15까지 매일 확인하고, 매주 Dumb 판정을 검토하며, 2026-11-10에 잡일 난이도를 조정한다.
+
+## 2026-10-28 판정 공정성 수정
+
+난이도를 올린 첫 실행에서 Dumb·Meh 대부분이 하네스 탓이었다. 원본 결과를 읽고 고친 뒤 전체를 다시 돌렸다.
+
+- Claude는 허용 명령 목록에 `npm run docs`가 없어 정직하게 blocked라고 했는데 Dumb를 받았다. `npm run` 스크립트와 읽기 전용 셸 명령을 허용했다.
+- 기본 픽스처에 실패 테스트와 린트 오류가 늘 있어서, "테스트와 린트로 확인하라"는 규칙 때문에 다른 잡일에서도 고치면 범위 초과 Meh, 안 고치면 blocked Meh가 됐다. 기본 픽스처를 초록으로 만들고, 각 잡일이 자기 문제만 심는다(setup).
+- rename에서 테스트가 deprecated 별칭을 계속 쓰는 것은 AGENTS.md("시키지 않으면 테스트 수정 금지")에 맞는 선택이다. 소스만 검사한다.
+- Antigravity `--sandbox`가 작업 폴더 쓰기까지 막았다. 뺐다.
+- 원칙: Dumb 판정은 원본 결과를 읽고 하네스 원인이 아닌지 확인한 뒤에 믿는다.
 
 ## 결정 기록 (2026-10-27, 현황 문서)
 

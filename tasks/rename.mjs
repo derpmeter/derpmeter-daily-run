@@ -15,7 +15,9 @@ const task = {
       const a = await s.loadItems(), b = await s.fetchItems?.();
       process.exit(Array.isArray(b) && JSON.stringify(a) === JSON.stringify(b) ? 0 : 1);`);
     if (alias.code !== 0) return { ok: false, why: "fetchItems alias missing or different" };
-    const users = (await ctx.grep("fetchItems", ["src", "tests"])).filter((p) => p !== "src/store.js");
+    // Tests may keep using the deprecated alias (AGENTS.md: tests are not
+    // edited unless asked); source code must not.
+    const users = (await ctx.grep("fetchItems", ["src"])).filter((p) => p !== "src/store.js");
     if (users.length) return { ok: false, why: `fetchItems still used in ${users.join(", ")}` };
     if (!(await ctx.read("README.md")).includes("loadItems"))
       return { ok: false, why: "README not updated to loadItems" };

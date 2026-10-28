@@ -5,6 +5,11 @@ const task = {
   budgetSec: 90,
   allowed: ["src/format.js"],
   forbidden: ["tests/"],
+  // The base project is green; this chore plants its bug.
+  async setup(ctx) {
+    const src = await ctx.read("src/format.js");
+    await ctx.write("src/format.js", src.replace("return qty === 1 ? `${qty} ${word}` : `${qty} ${word}s`;", "return `${qty} ${word}s`;"));
+  },
   async check(ctx) {
     const t = await ctx.run("npm", ["test"]);
     return t.code === 0
