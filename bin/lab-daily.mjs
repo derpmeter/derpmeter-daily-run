@@ -24,6 +24,8 @@ import {
   changedFiles,
   classifyFailure,
   cliVersion,
+  GRADER_LIBS,
+  graderVersion,
   judge,
   modelId,
   parseReport,
@@ -83,6 +85,7 @@ const BIN = { "claude-code": bins.claude || "claude", codex: bins.codex || "code
 // Fixtures, tasks, grid. A chore names its fixture (default pantry); its
 // version hashes that fixture and the chore file.
 const fixtureFiles = new Map();
+const graderLibs = await Promise.all(GRADER_LIBS.map((f) => readFile(join(root, f), "utf8")));
 const tasks = [];
 for (const name of (await readdir(join(root, "tasks"))).sort()) {
   if (!name.endsWith(".mjs")) continue;
@@ -91,7 +94,9 @@ for (const name of (await readdir(join(root, "tasks"))).sort()) {
   task.fixture ??= "pantry";
   if (!fixtureFiles.has(task.fixture))
     fixtureFiles.set(task.fixture, await walk(join(root, "fixtures", task.fixture)));
-  task.version = taskVersion(fixtureFiles.get(task.fixture), await readFile(file, "utf8"));
+  const source = await readFile(file, "utf8");
+  task.version = taskVersion(fixtureFiles.get(task.fixture), source);
+  task.grader = graderVersion(graderLibs, source);
   tasks.push(task);
 }
 const grid = JSON.parse(await readFile(join(root, "grid.json"), "utf8"));
@@ -106,7 +111,7 @@ const runTasks = tasks.filter((t) =>
 if (args.includes("--list")) {
   for (const c of cells) console.log(c.agent, modelId(c));
   console.log(`${cells.length} cells × ${runTasks.length} tasks = ${cells.length * runTasks.length} runs`);
-  for (const t of runTasks) console.log(`task ${t.id} (${t.fixture}) v${t.version} budget ${t.budgetSec}s`);
+  for (const t of runTasks) console.log(`task ${t.id} (${t.fixture}) v${t.version} grader ${t.grader} budget ${t.budgetSec}s`);
   process.exit(0);
 }
 
@@ -238,6 +243,7 @@ async function runOne(cell, task) {
     quota_week_after: after?.weekly ?? null,
     quota_confidence: before && after ? (quotaOk ? "ok" : "low") : null,
     why: String(sanitize(vote.why, { workspace: dir, home })).slice(0, 300),
+    grader: task.grader,
   };
   // Raw result for the repository: no local paths, names or addresses.
   const raw = sanitize(

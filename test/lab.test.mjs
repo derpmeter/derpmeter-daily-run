@@ -759,3 +759,15 @@ test("agy summaries: only records that name a Lab copy are dropped", () => {
   assert.deepEqual(out.buf, Buffer.concat([rec("a file:///Users/me/app"), rec("c other")]));
   assert.equal(dropRecords(Buffer.from([0x08, 0x01]), Buffer.from("x")), null);
 });
+
+test("grader and input versions: a check change is a new grader, not a new input", async () => {
+  const { graderVersion, inputVersion } = await import("../lib/lab.mjs");
+  const fx = [["a.js", "1"]];
+  const t = { prompt: "do it", setup: async () => {} };
+  assert.match(graderVersion(["judge"], "check A"), /^[0-9a-f]{8}$/);
+  assert.notEqual(graderVersion(["judge"], "check A"), graderVersion(["judge"], "check B"));
+  assert.notEqual(graderVersion(["judge"], "check A"), graderVersion(["judge 2"], "check A"));
+  assert.equal(inputVersion(fx, t), inputVersion(fx, { ...t }));
+  assert.notEqual(inputVersion(fx, t), inputVersion(fx, { ...t, prompt: "do it now" }));
+  assert.notEqual(inputVersion(fx, t), inputVersion([["a.js", "2"]], t));
+});
