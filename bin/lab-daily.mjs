@@ -264,8 +264,12 @@ async function runOne(cell, task) {
   await mkdir(dirname(file), { recursive: true });
   await writeFile(file, `${JSON.stringify(raw, null, 2)}\n`);
   if (vote.skipped) log(`  output tail: ${sanitize(res.stdout.slice(-300), { workspace: dir, home }).replace(/\s+/g, " ")}`);
-  await forgetRun(cell.agent, { dir, stdout: res.stdout });
-  if (!keep) await rm(dir, { recursive: true, force: true });
+  // --keep is for diagnosis: the copy, the agent log and the agent's own
+  // session stay on disk (clean up afterwards with a normal run's sweep).
+  if (!keep) {
+    await forgetRun(cell.agent, { dir, stdout: res.stdout });
+    await rm(dir, { recursive: true, force: true });
+  } else log(`  kept: ${dir} (agent log ${logFile})`);
   return { row, vote };
 }
 
@@ -296,8 +300,10 @@ await Promise.all(
       }
   }),
 );
-await sweepAgy();
-if (!keep) await rm(scratch, { recursive: true, force: true });
+if (!keep) {
+  await sweepAgy();
+  await rm(scratch, { recursive: true, force: true });
+}
 
 // Day summary for people reading the repository.
 const cellsOut = new Map();
