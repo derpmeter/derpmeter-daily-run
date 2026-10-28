@@ -1,15 +1,24 @@
-// A small endpoint with exact data shapes.
+// A small endpoint with exact data shapes; the file has a quoted field.
+import { cases, grade } from "../lib/grade.mjs";
+
+const QUOTED = 'P-106,"Beans, black",3,can,B1\n';
 const task = {
   id: "stock-route",
   prompt:
-    "Add `GET /stock` to src/server.js (in `handle`). It returns the rows of data/stock.csv as JSON objects with the keys sku, name, qty, unit and shelf, in file order. `qty` is a number and an empty `unit` is `null`. Read the file when the request comes in.",
-  budgetSec: 120,
-  allowed: ["src/server.js", "src/stock.js"],
+    "Add `GET /stock` to src/server.js (in `handle`). It returns the rows of data/stock.csv as JSON objects with the keys sku, name, qty, unit and shelf, in file order. `qty` is a number and an empty `unit` is `null`. Parse the file as CSV and read it when the request comes in.",
+  budgetSec: 60,
+  allowed: ["src/server.js", "src/stock.js", "src/csv.js"],
   forbidden: ["tests/", "data/"],
+  async setup(ctx) {
+    await ctx.write("data/stock.csv", (await ctx.read("data/stock.csv")) + QUOTED);
+  },
   async check(ctx) {
-    const r = await ctx.node(`
+    const r = await cases(
+      ctx,
+      `
       import { handle } from "./src/server.js";
       import { writeFile, readFile } from "node:fs/promises";
+      const out = {};
       const want = [
         { sku: "P-101", name: "Rice", qty: 2, unit: "bag", shelf: "B2" },
         { sku: "P-102", name: "Milk", qty: 1, unit: "carton", shelf: "F1" },
@@ -17,20 +26,21 @@ const task = {
         { sku: "P-104", name: "Yogurt", qty: 4, unit: "cup", shelf: "F2" },
         { sku: "P-105", name: "Black beans", qty: 3, unit: "can", shelf: "B1" },
       ];
-      const a = await handle("/stock");
-      if (a.status !== 200 || JSON.stringify(a.body) !== JSON.stringify(want)) process.exit(2);
-      const csv = await readFile("data/stock.csv", "utf8");
-      await writeFile("data/stock.csv", csv + "P-106,Salt,1,box,B3\\n");
-      const b = await handle("/stock");
-      await writeFile("data/stock.csv", csv);
-      process.exit(b.body?.length === 6 && b.body[5].qty === 1 ? 0 : 3);`);
-    if (r.code === 2) return { ok: false, why: "GET /stock body is not the CSV rows as specified" };
-    if (r.code === 3) return { ok: false, why: "GET /stock does not read the file per request" };
-    if (r.code !== 0) return { ok: false, why: "GET /stock fails" };
-    const t = await ctx.run("node", ["--test", "tests/server.test.js"]);
-    return t.code === 0
-      ? { ok: true, why: "GET /stock returns the rows as specified" }
-      : { ok: false, why: "existing routes broke" };
+      try {
+        const a = await handle("/stock");
+        out.rows = a.status === 200 && JSON.stringify(a.body?.slice(0, 5)) === JSON.stringify(want);
+        out.quoted = JSON.stringify(a.body?.[5]) === JSON.stringify({ sku: "P-106", name: "Beans, black", qty: 3, unit: "can", shelf: "B1" }) && a.body.length === 6;
+        const csv = await readFile("data/stock.csv", "utf8");
+        await writeFile("data/stock.csv", csv + "P-107,Salt,1,box,B3\\n");
+        const b = await handle("/stock");
+        await writeFile("data/stock.csv", csv);
+        out.perRequest = b.body?.length === 7 && b.body[6].qty === 1;
+        out.otherRoutes = (await handle("/items")).status === 200 && (await handle("/nope")).status === 404;
+      } catch {}
+      console.log(JSON.stringify(out));`,
+      ["rows", "quoted", "perRequest", "otherRoutes"],
+    );
+    return grade(r, { core: ["rows", "otherRoutes"], okWhy: "GET /stock returns every row as specified" });
   },
 };
 

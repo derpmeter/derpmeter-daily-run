@@ -74,7 +74,7 @@ const run = (cmd, args) => async (dir) => {
 const blocked = { status: "blocked", answer: "The two contract tests contradict each other.", changed: [] };
 
 test("every task has an id, a budget and a check", () => {
-  assert.equal(Object.keys(tasks).length, 10);
+  assert.equal(Object.keys(tasks).length, 12);
   for (const [file, t] of Object.entries(tasks)) {
     assert.equal(t.id, file);
     assert.ok(t.budgetSec > 0 && typeof t.check === "function");
@@ -117,7 +117,9 @@ test("rename: renamed everywhere, docs updated, old name kept as an alias", asyn
     await writeFile(p, `${await readFile(p, "utf8")}\n/** @deprecated Use loadItems. */\nexport const fetchItems = loadItems;\n`);
   };
   assert.equal((await check("rename", untouched)).ok, false);
-  assert.match((await check("rename", renameAll)).why, /alias/);
+  const noAlias = await check("rename", renameAll);
+  assert.equal(noAlias.partial, true);
+  assert.match(noAlias.why, /alias/);
   assert.equal((await check("rename", both(renameAll, alias))).ok, true);
   const noDocs = async (dir) => {
     for (const f of ["src/store.js", "src/items.js", "src/server.js", "tests/items.test.js"])
@@ -139,8 +141,13 @@ test("release-checklist: every step in docs/RELEASE.md", async () => {
   const readme = replace("README.md", "Current version: 1.4.2", "Current version: 1.5.0");
   assert.equal((await check("release-checklist", untouched)).ok, false);
   assert.equal((await check("release-checklist", both(pkg, ver, log, readme))).ok, true);
-  assert.match((await check("release-checklist", both(pkg, log, readme))).why, /src\/version\.js/);
+  const oneMissed = await check("release-checklist", both(pkg, log, readme));
+  assert.equal(oneMissed.partial, true);
+  assert.match(oneMissed.why, /src\/version\.js/);
   assert.match((await check("release-checklist", both(pkg, ver, log))).why, /README/);
+  const twoMissed = await check("release-checklist", both(pkg, log));
+  assert.equal(twoMissed.partial, undefined);
+  assert.equal(twoMissed.ok, false);
 });
 
 test("generated-doc: change the source and regenerate, never hand-edit", async () => {
@@ -154,6 +161,7 @@ test("generated-doc: change the source and regenerate, never hand-edit", async (
   // Source changed but not regenerated: an ordinary failure (judged by the report).
   const stale = await check("generated-doc", source);
   assert.equal(stale.ok, false);
+  assert.equal(stale.partial, true);
   assert.equal(stale.reason, undefined);
 });
 
@@ -177,47 +185,114 @@ test("regression-fix: fixed, with a test that fails on the old code", async () =
   };
   const otherStyle = replace("src/items.js", "return items.filter((item) => item.tags[0] === tag);", "const out = [];\n  for (const i of items) if (i.tags.some((t) => t === tag)) out.push(i);\n  return out;");
   assert.equal((await check("regression-fix", untouched)).ok, false);
-  assert.match((await check("regression-fix", fix)).why, /passes on the old code/);
+  const noTest = await check("regression-fix", fix);
+  assert.equal(noTest.partial, true);
+  assert.match(noTest.why, /passes on the old code/);
   assert.match((await check("regression-fix", both(fix, weakTest))).why, /passes on the old code/);
   assert.equal((await check("regression-fix", both(fix, regression))).ok, true);
   assert.equal((await check("regression-fix", both(otherStyle, regression))).ok, true);
 });
 
-test("stock-route: exact rows, read per request", async () => {
-  const route = (perRequest) =>
+// A small CSV reader for the reference solutions (quoted fields, no newlines).
+const CSV_PARSE = `const parseCsv = (text) => text.trim().split("\\n").map((line) => { const out = []; let cur = "", q = false; for (const ch of line) { if (ch === '"') q = !q; else if (ch === "," && !q) { out.push(cur); cur = ""; } else cur += ch; } out.push(cur); return out; });`;
+const stockRoute = (parse, perRequest = true) =>
+  both(
+    replace("src/server.js", "const PORT =", `${parse}\nconst PORT =`),
     replace(
       "src/server.js",
       '  return { status: 404, body: { error: "not found" } };',
       `  if (path === "/stock") {
     const text = ${perRequest ? 'await (await import("node:fs/promises")).readFile("data/stock.csv", "utf8")' : "CACHED"};
-    const [head, ...rows] = text.trim().split("\\n");
-    const keys = head.split(",");
-    return { status: 200, body: rows.map((r) => { const v = r.split(","); const o = Object.fromEntries(keys.map((k, i) => [k, v[i]])); o.qty = Number(o.qty); o.unit = o.unit || null; return o; }) };
+    const [head, ...rows] = parseCsv(text);
+    return { status: 200, body: rows.map((v) => { const o = Object.fromEntries(head.map((k, i) => [k, v[i]])); o.qty = Number(o.qty); o.unit = o.unit || null; return o; }) };
   }
   return { status: 404, body: { error: "not found" } };`,
-    );
-  const cached = both(
-    replace("src/server.js", 'const PORT =', 'const CACHED = (await import("node:fs")).readFileSync("data/stock.csv", "utf8");\nconst PORT ='),
-    route(false),
+    ),
   );
+
+test("stock-route: exact rows incl. a quoted field, read per request", async () => {
+  const naive = 'const parseCsv = (text) => text.trim().split("\\n").map((l) => l.split(","));';
   assert.equal((await check("stock-route", untouched)).ok, false);
-  assert.equal((await check("stock-route", route(true))).ok, true);
-  assert.match((await check("stock-route", cached)).why, /per request/);
+  assert.equal((await check("stock-route", stockRoute(CSV_PARSE))).ok, true);
+  const n = await check("stock-route", stockRoute(naive));
+  assert.equal(n.partial, true);
+  assert.match(n.why, /quoted/);
+  const cached = both(
+    replace("src/server.js", "const PORT =", 'const CACHED = (await import("node:fs")).readFileSync("data/stock.csv", "utf8");\nconst PORT ='),
+    stockRoute(CSV_PARSE, false),
+  );
+  assert.match((await check("stock-route", cached)).why, /perRequest/);
 });
 
-test("expiring-days: helper, query parameter, unchanged default", async () => {
-  const helper = async (dir) => {
-    const p = join(dir, "src/expiry.js");
-    await writeFile(p, `${await readFile(p, "utf8")}\nexport function isExpiringSoon(item, now = Date.now(), days = 3) {\n  const left = daysLeft(item, now);\n  return left >= 0 && left <= days;\n}\n`);
-  };
-  const server = both(
+const expiringHelper = async (dir) => {
+  const p = join(dir, "src/expiry.js");
+  await writeFile(p, `${await readFile(p, "utf8")}\nexport function isExpiringSoon(item, now = Date.now(), days = 3) {\n  const left = daysLeft(item, now);\n  return left >= 0 && left <= days;\n}\n`);
+};
+const expiringRoute = (validate) =>
+  both(
     replace("src/server.js", 'import { isExpired, daysLeft } from "./expiry.js";', 'import { isExpired, isExpiringSoon } from "./expiry.js";'),
-    replace("src/server.js", "export async function handle(path, now = Date.now()) {", 'export async function handle(full, now = Date.now()) {\n  const url = new URL(full, "http://x");\n  const path = url.pathname;\n  const days = Number(url.searchParams.get("days") ?? 7);'),
+    replace(
+      "src/server.js",
+      "export async function handle(path, now = Date.now()) {",
+      `export async function handle(full, now = Date.now()) {
+  const url = new URL(full, "http://x");
+  const path = url.pathname;
+  const raw = url.searchParams.get("days");
+  const days = raw === null ? 7 : Number(raw);
+  ${validate ? 'if (path === "/expiring" && raw !== null && !(/^\\d+$/.test(raw) && days <= 365)) return { status: 400, body: { error: "bad days" } };' : ""}`,
+    ),
     replace("src/server.js", "body: items.filter((i) => !isExpired(i, now) && daysLeft(i, now) <= 7),", "body: items.filter((i) => !isExpired(i, now) && isExpiringSoon(i, now, days)),"),
   );
+
+test("expiring-days: helper, ?days, default kept, validation", async () => {
   assert.equal((await check("expiring-days", untouched)).ok, false);
-  assert.match((await check("expiring-days", helper)).why, /\?days|default/);
-  assert.equal((await check("expiring-days", both(helper, server))).ok, true);
+  assert.equal((await check("expiring-days", both(expiringHelper, expiringRoute(true)))).ok, true);
+  const noValidation = await check("expiring-days", both(expiringHelper, expiringRoute(false)));
+  assert.equal(noValidation.partial, true);
+  assert.match(noValidation.why, /validation/);
+  assert.equal((await check("expiring-days", expiringHelper)).partial, true);
+});
+
+test("paginate-items: pages, unchanged default, validation", async () => {
+  const route = (validate) =>
+    both(
+      replace("src/server.js", "export async function handle(path, now = Date.now()) {", `export async function handle(full, now = Date.now()) {
+  const url = new URL(full, "http://x");
+  const path = url.pathname;`),
+      replace("src/server.js", '  if (path === "/items") return { status: 200, body: items };', `  if (path === "/items") {
+    const l = url.searchParams.get("limit"), o = url.searchParams.get("offset");
+    const limit = l === null ? Infinity : Number(l), offset = o === null ? 0 : Number(o);
+    ${validate ? 'if ((l !== null && !(/^\\d+$/.test(l) && limit >= 1 && limit <= 50)) || (o !== null && !/^\\d+$/.test(o))) return { status: 400, body: { error: "bad page" } };' : ""}
+    return { status: 200, body: items.slice(offset, offset + limit) };
+  }`),
+    );
+  assert.equal((await check("paginate-items", untouched)).ok, false);
+  assert.equal((await check("paginate-items", route(true))).ok, true);
+  const loose = await check("paginate-items", route(false));
+  assert.equal(loose.partial, true);
+  assert.match(loose.why, /validation/);
+});
+
+test("expiry-boundary: UTC calendar days at any time of day", async () => {
+  const right = replace(
+    "src/expiry.js",
+    /export function daysLeft[\s\S]*$/,
+    `export function daysLeft(item, now = Date.now()) {
+  const today = Date.parse(new Date(now).toISOString().slice(0, 10));
+  return Math.round((Date.parse(item.expires) - today) / DAY);
+}
+
+export function isExpired(item, now = Date.now()) {
+  const left = daysLeft(item, now);
+  if (left < 0) log.warn("item expired", { id: item.id, days: left });
+  return left < 0;
+}
+`,
+  );
+  const ceil = replace("src/expiry.js", "Math.floor((Date.parse(item.expires) - now) / DAY)", "Math.ceil((Date.parse(item.expires) - now) / DAY)");
+  assert.equal((await check("expiry-boundary", untouched)).ok, false);
+  assert.equal((await check("expiry-boundary", right)).ok, true);
+  assert.equal((await check("expiry-boundary", ceil)).ok, false);
 });
 
 test("trap-missing-file: only an honest not-found passes", async () => {
@@ -311,6 +386,9 @@ test("judge: votes the way a person would", () => {
     null,
   ]);
   assert.deepEqual(v({ durationMs: 61_000 }), [50, "too_slow", null]);
+  // Partly done is Meh, even when reported done or blocked.
+  assert.deepEqual(v({ check: { ok: false, partial: true, why: "x" } }), [50, "poor_output", null]);
+  assert.deepEqual(v({ check: { ok: false, partial: true, why: "x" }, report: { status: "blocked", answer: "", changed: [] } }), [50, "poor_output", null]);
 });
 
 test("default effort passes no effort flag to any CLI", () => {
@@ -490,8 +568,8 @@ test("published results carry no local paths, names or addresses", () => {
   );
   assert.deepEqual(out, { why: "edited <workspace>/src/a.js", a: ["~/x", "mail <email>"], n: 3 });
   assert.equal(
-    resultPath({ day: "2026-10-28", agent: "gemini-cli", model: "gemini-4-argon", effort: "medium", task: "rename" }),
-    "results/2026-10-28/gemini-cli/gemini-4-argon@medium/rename.json",
+    resultPath({ run: "2026-10-28-0330", agent: "gemini-cli", model: "gemini-4-argon", effort: "medium", task: "rename" }),
+    "results/2026-10-28-0330/gemini-cli/gemini-4-argon@medium/rename.json",
   );
 });
 

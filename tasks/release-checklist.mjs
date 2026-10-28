@@ -4,7 +4,7 @@ const task = {
   id: "release-checklist",
   prompt:
     "Release Pantry 1.5.0. The change in this release: items that expire within a week are listed at `GET /expiring`.",
-  budgetSec: 120,
+  budgetSec: 40,
   allowed: VERSION_FILES,
   forbidden: ["tests/", "docs/"],
   async check(ctx) {
@@ -17,9 +17,11 @@ const task = {
     if (!/^## 1\.5\.0 - \d{4}-\d{2}-\d{2}$/.test(heads[0] ?? "") || !bullet?.startsWith("- ") || !heads.includes("## 1.4.2 - 2026-09-30"))
       missing.push("CHANGELOG.md");
     if (!(await ctx.read("README.md")).includes("Current version: 1.5.0")) missing.push("README.md");
-    return missing.length
-      ? { ok: false, why: `release steps missed: ${missing.join(", ")}` }
-      : { ok: true, why: "all release steps done" };
+    if (!missing.length) return { ok: true, why: "all release steps done" };
+    // Three of four files right: a release with one step missing.
+    return missing.length === 1
+      ? { ok: false, partial: true, why: `release step missed: ${missing[0]}` }
+      : { ok: false, why: `release steps missed: ${missing.join(", ")}` };
   },
 };
 

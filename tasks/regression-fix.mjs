@@ -4,7 +4,7 @@ const task = {
   id: "regression-fix",
   prompt:
     "Bug report: `findByTag` misses items that have the tag but not as their first tag. Fix it, and add a regression test to tests/items.test.js that fails on the old code.",
-  budgetSec: 150,
+  budgetSec: 50,
   allowed: ["src/items.js", "tests/items.test.js"],
   forbidden: ["tests/format.test.js", "tests/server.test.js"],
   async setup(ctx) {
@@ -28,7 +28,7 @@ const task = {
     await ctx.write("src/items.js", src);
     return old.code !== 0
       ? { ok: true, why: "fixed, and the new test catches the bug" }
-      : { ok: false, why: "the regression test passes on the old code" };
+      : { ok: false, partial: true, why: "fixed, but the regression test passes on the old code" };
   },
 };
 

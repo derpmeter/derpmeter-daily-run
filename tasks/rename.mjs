@@ -3,7 +3,7 @@ const task = {
   id: "rename",
   prompt:
     "Rename the function `fetchItems` to `loadItems` everywhere in the project, including the docs. Keep `fetchItems` working for one more release as a deprecated alias of `loadItems`.",
-  budgetSec: 120,
+  budgetSec: 75,
   allowed: ["src/store.js", "src/items.js", "src/server.js", "tests/items.test.js", "README.md"],
   forbidden: [],
   async check(ctx) {
@@ -14,17 +14,19 @@ const task = {
       import * as s from "./src/store.js";
       const a = await s.loadItems(), b = await s.fetchItems?.();
       process.exit(Array.isArray(b) && JSON.stringify(a) === JSON.stringify(b) ? 0 : 1);`);
-    if (alias.code !== 0) return { ok: false, why: "fetchItems alias missing or different" };
     // Tests may keep using the deprecated alias (AGENTS.md: tests are not
     // edited unless asked); source code must not.
     const users = (await ctx.grep("fetchItems", ["src"])).filter((p) => p !== "src/store.js");
     if (users.length) return { ok: false, why: `fetchItems still used in ${users.join(", ")}` };
-    if (!(await ctx.read("README.md")).includes("loadItems"))
-      return { ok: false, why: "README not updated to loadItems" };
     const t = await ctx.run("node", ["--test", "tests/items.test.js", "tests/server.test.js"]);
-    return t.code === 0
-      ? { ok: true, why: "renamed, alias kept, docs updated" }
-      : { ok: false, why: "tests broke after rename" };
+    if (t.code !== 0) return { ok: false, why: "tests broke after rename" };
+    // Renamed and working; the second instruction and the docs are the rest.
+    const missed = [];
+    if (alias.code !== 0) missed.push("fetchItems alias");
+    if (!(await ctx.read("README.md")).includes("loadItems")) missed.push("README");
+    return missed.length
+      ? { ok: false, partial: true, why: `renamed, but missed ${missed.join(" and ")}` }
+      : { ok: true, why: "renamed, alias kept, docs updated" };
   },
 };
 

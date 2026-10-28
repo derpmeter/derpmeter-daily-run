@@ -3,11 +3,13 @@
 // grid.json gets the same small chores in a fresh copy of a fixture project;
 // what it did becomes one Smart/Meh/Dumb vote per chore. Not a benchmark: no
 // ranking, no difficulty ladder; it shows whether a model got dumber.
-//   node --env-file=.env bin/lab-daily.mjs [--apply] [--publish] [--agent codex]
-//     [--model gpt-6.1-sol] [--task rename] [--keep] [--list]
-// Default is a dry run. --apply stores votes in DerpMeter's lab_votes table;
-// --publish commits the raw results to results/<day>/ on a branch merged
-// into main. Plan: docs/PLAN.md.
+//   node --env-file=.env bin/lab-daily.mjs [--apply] [--publish] [--kind tuning]
+//     [--agent codex] [--model gpt-6.1-sol] [--task rename] [--keep] [--list]
+// Every invocation is one run, named <day>-<HHMM> (UTC), and every run is
+// kept: --apply stores its votes in DerpMeter's lab_votes table, --publish
+// commits its raw results to results/<run>/ on branch results/<run>, merged
+// into main. "daily" runs (launchd) make the weekly series; "tuning" runs
+// are difficulty experiments. Default is a dry run. Plan: docs/PLAN.md.
 import { existsSync } from "node:fs";
 import { appendFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
@@ -64,9 +66,8 @@ const list = (n) => option(n)?.split(",").filter(Boolean);
 const apply = args.includes("--apply");
 const publish = args.includes("--publish");
 const keep = args.includes("--keep");
-// --redo runs the selected cells again even if today already has their votes
-// (after a harness fix that does not change a chore's version).
-const redo = args.includes("--redo");
+const kind = option("--kind") ?? "daily";
+if (!["daily", "tuning"].includes(kind)) throw new Error("--kind is daily or tuning.");
 const only = { agent: list("--agent"), model: list("--model"), task: list("--task") };
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 const root = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
@@ -75,6 +76,7 @@ const started = new Date();
 const runnerCommit = (await exec("git", ["rev-parse", "--short", "HEAD"], { cwd: root })).stdout.trim();
 const day = started.toISOString().slice(0, 10);
 const stamp = started.toISOString().slice(11, 16).replace(":", "");
+const run = `${day}-${stamp}`;
 const bins = { claude: process.env.CLAUDE_BIN, codex: process.env.CODEX_BIN, agy: process.env.AGY_BIN };
 const BIN = { "claude-code": bins.claude || "claude", codex: bins.codex || "codex", "gemini-cli": bins.agy || "agy" };
 
@@ -136,15 +138,12 @@ const isolated = {
 };
 
 let db = null;
-const done = new Set();
 if (apply) {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY)
     throw new Error("Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (.env).");
   db = supabase(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  // A rerun the same day only fills in what is missing or was skipped.
-  const rows = await db.select(`select=agent,model,effort,task,task_version&day=eq.${day}&score=not.is.null`);
-  for (const r of rows) done.add(`${r.agent}|${r.model}|${r.effort}|${r.task}|${r.task_version}`);
 }
+log(`run ${run} (${kind}): ${cells.length} cells × ${runTasks.length} chores`);
 
 await sweepAgy();
 const scratch = await mkdtemp(join(tmpdir(), "derpmeter-lab-"));
@@ -198,6 +197,8 @@ async function runOne(cell, task) {
   const vote = judge({ skipped, timedOut: res.timedOut, report, check, changed, task, durationMs: res.ms });
   const quotaOk = before && after && !othersWorked(cpuBefore, cpuAfter);
   const row = {
+    run,
+    kind,
     day,
     agent: cell.agent,
     model: cell.model,
@@ -220,6 +221,7 @@ async function runOne(cell, task) {
     quota_week_before: before?.weekly ?? null,
     quota_week_after: after?.weekly ?? null,
     quota_confidence: before && after ? (quotaOk ? "ok" : "low") : null,
+    why: String(sanitize(vote.why, { workspace: dir, home })).slice(0, 300),
   };
   // Raw result for the repository: no local paths, names or addresses.
   const raw = sanitize(
@@ -259,7 +261,6 @@ await Promise.all(
   [...new Set(cells.map((c) => c.agent))].map(async (agent) => {
     for (const cell of cells.filter((c) => c.agent === agent))
       for (const task of runTasks) {
-        if (!redo && done.has(`${cell.agent}|${cell.model}|${cell.effort}|${task.id}|${task.version}`)) continue;
         const { row, vote } = await runOne(cell, task);
         results.push(row);
         log(
@@ -295,9 +296,9 @@ for (const r of results) {
   cellsOut.set(k, c);
 }
 const lines = [
-  `# Lab Daily ${day}`,
+  `# Lab Daily run ${run}`,
   "",
-  `Run started ${started.toISOString()}. Score = mean of the Lab's votes (Smart 0, Meh 50, Dumb 100).`,
+  `Kind: ${kind}. Started ${started.toISOString()}, runner ${runnerCommit}. Score = mean of the Lab's votes (Smart 0, Meh 50, Dumb 100).`,
   "",
   "| Agent | Model | Effort | Score | Votes | Skipped |",
   "| --- | --- | --- | --- | --- | --- |",
@@ -309,10 +310,8 @@ for (const [k, c] of cellsOut) {
   lines.push(`| ${agent} | ${model} | ${effort || "default"} | ${score} | ${c.n} | ${c.skipped} |`);
 }
 if (results.length) {
-  await mkdir(join(root, "results", day), { recursive: true });
-  const summary = join(root, "results", day, "README.md");
-  const prior = existsSync(summary) ? `${await readFile(summary, "utf8")}\n` : "";
-  await writeFile(summary, `${prior}${lines.join("\n")}\n`);
+  await mkdir(join(root, "results", run), { recursive: true });
+  await writeFile(join(root, "results", run, "README.md"), `${lines.join("\n")}\n`);
 }
 log(`${results.length} runs${apply ? " stored" : " (dry run, nothing stored)"}`);
-if (publish && results.length) log(`results published: ${await publishResults(root, day, stamp, log)}`);
+if (publish && results.length) log(`results published: ${await publishResults(root, run, log)}`);

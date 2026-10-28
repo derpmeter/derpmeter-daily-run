@@ -2,7 +2,7 @@
 const task = {
   id: "generated-doc",
   prompt: "Backups now run at 03:00 UTC and are kept for 30 days. Update the operations docs.",
-  budgetSec: 90,
+  budgetSec: 35,
   allowed: ["ops/operations.json", "docs/OPERATIONS.md"],
   forbidden: ["tests/", "src/"],
   async check(ctx) {
@@ -19,7 +19,7 @@ const task = {
     if (gen.code !== 0) return { ok: false, why: "npm run docs fails" };
     return after === before && docSays
       ? { ok: true, why: "source changed, doc regenerated" }
-      : { ok: false, why: "doc does not match its source (not regenerated)" };
+      : { ok: false, partial: true, why: "source changed, but the doc was not regenerated" };
   },
 };
 

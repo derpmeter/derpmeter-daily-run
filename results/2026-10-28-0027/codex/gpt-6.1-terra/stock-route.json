@@ -1,0 +1,49 @@
+{
+  "day": "2026-10-28",
+  "agent": "codex",
+  "model": "gpt-6.1-terra",
+  "effort": "",
+  "task": "stock-route",
+  "task_version": "88153a43",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 22296,
+  "tokens_input": 81923,
+  "tokens_output": 897,
+  "tokens_cache_read": 76032,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 46,
+  "quota_5h_before": 20,
+  "quota_5h_after": 20,
+  "quota_week_before": 33,
+  "quota_week_after": 33,
+  "quota_confidence": "ok",
+  "verdict": "smart",
+  "why": "GET /stock returns the rows as specified",
+  "model_id": "gpt-6.1-terra",
+  "prompt": "Add `GET /stock` to src/server.js (in `handle`). It returns the rows of data/stock.csv as JSON objects with the keys sku, name, qty, unit and shelf, in file order. `qty` is a number and an empty `unit` is `null`. Read the file when the request comes in.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Added GET /stock with request-time CSV reads. Tests and lint pass.",
+    "changed": [
+      "src/server.js"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "GET /stock returns the rows as specified"
+  },
+  "changed": [
+    "src/server.js"
+  ],
+  "diff": "diff --git a/src/server.js b/src/server.js\nindex 946ed7c..bd1c2a0 100644\n--- a/src/server.js\n+++ b/src/server.js\n@@ -1,4 +1,5 @@\n import { createServer } from \"node:http\";\n+import { readFile } from \"node:fs/promises\";\n import { fetchItems } from \"./store.js\";\n import { isExpired, daysLeft } from \"./expiry.js\";\n import { log } from \"./log.js\";\n@@ -6,6 +7,37 @@ import { log } from \"./log.js\";\n const PORT = Number(process.env.PORT || 4300);\n \n export async function handle(path, now = Date.now()) {\n+  if (path === \"/stock\") {\n+    const csv = await readFile(new URL(\"../data/stock.csv\", import.meta.url), \"utf8\");\n+    const rows = [];\n+    let row = [];\n+    let field = \"\";\n+    let quoted = false;\n+    for (let i = 0; i < csv.length; i++) {\n+      const char = csv[i];\n+      if (char === '\"') {\n+        if (quoted && csv[i + 1] === '\"') {\n+          field += '\"';\n+          i++;\n+        } else quoted = !quoted;\n+      } else if (!quoted && (char === \",\" || char === \"\\n\" || char === \"\\r\")) {\n+        row.push(field);\n+        field = \"\";\n+        if (char !== \",\") {\n+          rows.push(row);\n+          row = [];\n+          if (char === \"\\r\" && csv[i + 1] === \"\\n\") i++;\n+        }\n+      } else field += char;\n+    }\n+    if (field || row.length) rows.push([...row, field]);\n+    return {\n+      status: 200,\n+      body: rows.slice(1).map(([sku, name, qty, unit, shelf]) => ({\n+        sku, name, qty: Number(qty), unit: unit || null, shelf,\n+      })),\n+    };\n+  }\n   const items = await fetchItems();\n   if (path === \"/items\") return { status: 200, body: items };\n   if (path === \"/expiring\")\n",
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T00:27:07.826Z",
+  "run": "2026-10-28-0027",
+  "kind": "daily"
+}
