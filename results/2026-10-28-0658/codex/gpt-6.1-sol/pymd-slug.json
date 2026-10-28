@@ -1,0 +1,57 @@
+{
+  "run": "2026-10-28-0658",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "",
+  "task": "pymd-slug",
+  "task_version": "c4428213",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 50,
+  "reason": "poor_output",
+  "skipped": null,
+  "duration_ms": 52704,
+  "tokens_input": 175430,
+  "tokens_output": 1043,
+  "tokens_cache_read": 145408,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 21,
+  "quota_5h_before": 2,
+  "quota_5h_after": 3,
+  "quota_week_before": 0,
+  "quota_week_after": 0,
+  "quota_confidence": "ok",
+  "why": "also changed docs/extensions/toc.md",
+  "verdict": "meh",
+  "model_id": "gpt-6.1-sol",
+  "prompt": "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed heading IDs to trim whitespace after punctuation removal. Added regression coverage, documentation, and changelog entry. All 1,130 tests passed (110 skipped).",
+    "changed": [
+      "markdown/extensions/toc.py",
+      "tests/test_syntax/extensions/test_toc.py",
+      "docs/extensions/toc.md",
+      "docs/changelog.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "slugify strips again on every path, with a regression test and changelog"
+  },
+  "changed": [
+    "docs/changelog.md",
+    "docs/extensions/toc.md",
+    "markdown/extensions/toc.py",
+    "tests/test_syntax/extensions/test_toc.py"
+  ],
+  "diff": "diff --git a/docs/changelog.md b/docs/changelog.md\nindex dcb6362..392bc9e 100644\n--- a/docs/changelog.md\n+++ b/docs/changelog.md\n@@ -12,6 +12,13 @@ and this project adheres to the\n [Python Version Specification](https://packaging.python.org/en/latest/specifications/version-specifiers/).\n See the [Contributing Guide](contributing.md) for details.\n \n+## [unreleased]\n+\n+### Fixed\n+\n+* Avoid leading and trailing word separators in `toc` heading IDs caused by\n+  whitespace left after removing punctuation.\n+\n ## [3.11.2] - 2026-10-19\n \n ### Fixed\ndiff --git a/docs/extensions/toc.md b/docs/extensions/toc.md\nindex f9d5800..2062270 100644\n--- a/docs/extensions/toc.md\n+++ b/docs/extensions/toc.md\n@@ -42,6 +42,10 @@ extensions: [toc]\n #Header\n ```\n \n+When generating an `id`, the default slugify function removes punctuation and\n+strips leading and trailing whitespace before replacing whitespace with the\n+word separator. For example, `# Hello world !` gets the `id` `hello-world`.\n+\n Place a marker in the document where you would like the Table of Contents to\n appear. Then, a nested list of all the headers in the document will replace the\n marker. The marker defaults to `[TOC]`.\ndiff --git a/markdown/extensions/toc.py b/markdown/extensions/toc.py\nindex 3cc6481..0681254 100644\n--- a/markdown/extensions/toc.py\n+++ b/markdown/extensions/toc.py\n@@ -41,7 +41,7 @@ def slugify(value: str, separator: str, unicode: bool = False) -> str:\n         # Replace Extended Latin characters with ASCII, i.e. `žlutý` => `zluty`\n         value = unicodedata.normalize('NFKD', value)\n         value = value.encode('ascii', 'ignore').decode('ascii')\n-    value = re.sub(r'[^\\w\\s-]', '', value).lower()\n+    value = re.sub(r'[^\\w\\s-]', '', value).strip().lower()\n     return re.sub(r'[{}\\s]+'.format(separator), separator, value)\n \n \ndiff --git a/tests/test_syntax/extensions/test_toc.py b/tests/test_syntax/extensions/test_toc.py\nindex 372ba09..2117466 100644\n--- a/tests/test_syntax/extensions/test_toc.py\n+++ b/tests/test_syntax/extensions/test_toc.py\n@@ -144,6 +144,24 @@ class TestTOC(TestCase):\n             extensions=[TocExtension(marker='')]\n         )\n \n+    def testPunctuationAtHeadingEdges(self):\n+        for separator in ('-', '_'):\n+            for heading in ('Hello world !', '! Hello world', '! Hello world !'):\n+                with self.subTest(separator=separator, heading=heading):\n+                    slug = 'hello' + separator + 'world'\n+                    self.assertMarkdownRenders(\n+                        '# ' + heading,\n+                        '<h1 id=\"{}\">{}</h1>'.format(slug, heading),\n+                        extensions=[TocExtension(separator=separator)],\n+                        expected_attrs={\n+                            'toc': (\n+                                '<div class=\"toc\">\\n<ul>\\n'\n+                                '<li><a href=\"#{}\">{}</a></li>\\n'\n+                                '</ul>\\n</div>\\n'\n+                            ).format(slug, heading)\n+                        }\n+                    )\n+\n     def testTOCReset(self):\n         md = Markdown(extensions=[TocExtension()])\n         self.assertEqual(md.toc, '')\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T06:58:22.678Z",
+  "runner_commit": "6acaf09"
+}

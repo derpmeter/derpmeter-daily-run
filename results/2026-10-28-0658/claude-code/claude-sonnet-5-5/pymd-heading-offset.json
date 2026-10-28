@@ -1,0 +1,63 @@
+{
+  "run": "2026-10-28-0658",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-sonnet-5-5",
+  "effort": "",
+  "task": "pymd-heading-offset",
+  "task_version": "7b3d15a9",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 93728,
+  "tokens_input": 363454,
+  "tokens_output": 5876,
+  "tokens_cache_read": 338645,
+  "tokens_cache_write": 24787,
+  "tokens_reasoning": 1408,
+  "quota_5h_before": 30,
+  "quota_5h_after": 31,
+  "quota_week_before": 83,
+  "quota_week_after": 83,
+  "quota_confidence": "ok",
+  "why": "offset everywhere incl. toc and CLI, validated, documented and tested",
+  "verdict": "smart",
+  "model_id": "claude-sonnet-5-5",
+  "prompt": "Add a `heading_offset` option to `markdown.Markdown` (and `markdown.markdown`): a whole number from 0 to 5, default 0, that shifts the level of every heading Markdown produces by that many (an `h1` becomes an `h2` with 1), never beyond `h6`. Any other value raises `ValueError`.\n- It applies to hash and underline headings, and to headings from extensions such as `md_in_html`.\n- The `toc` extension sees the shifted levels (its tokens and `toc_depth`).\n- The command line gets `--heading-offset N`.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Added heading_offset (0-5, ValueError otherwise) via a treeprocessor running before toc, plus --heading-offset CLI option, tests, docs and changelog; all tests pass.",
+    "changed": [
+      "markdown/core.py",
+      "markdown/treeprocessors.py",
+      "markdown/__main__.py",
+      "tests/test_apis.py",
+      "docs/library.md",
+      "docs/cli.md",
+      "docs/changelog.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "offset everywhere incl. toc and CLI, validated, documented and tested"
+  },
+  "changed": [
+    "docs/changelog.md",
+    "docs/cli.md",
+    "docs/library.md",
+    "markdown/__main__.py",
+    "markdown/core.py",
+    "markdown/treeprocessors.py",
+    "tests/test_apis.py"
+  ],
+  "diff": "diff --git a/docs/changelog.md b/docs/changelog.md\nindex dcb6362..de47381 100644\n--- a/docs/changelog.md\n+++ b/docs/changelog.md\n@@ -12,6 +12,13 @@ and this project adheres to the\n [Python Version Specification](https://packaging.python.org/en/latest/specifications/version-specifiers/).\n See the [Contributing Guide](contributing.md) for details.\n \n+## [Unreleased]\n+\n+### Added\n+\n+* Add a `heading_offset` option (and `--heading-offset` on the command line) to\n+  shift the level of every heading.\n+\n ## [3.11.2] - 2026-10-19\n \n ### Fixed\ndiff --git a/docs/cli.md b/docs/cli.md\nindex abdab3b..8941de1 100644\n--- a/docs/cli.md\n+++ b/docs/cli.md\n@@ -51,6 +51,8 @@ Options:\n                         Encoding for input and output files.\n   -o OUTPUT_FORMAT, --output_format=OUTPUT_FORMAT\n                         Use output format 'xhtml' (default) or 'html'.\n+  --heading-offset=N    Shift the level of every heading by N (0 to 5).\n+                        Defaults to 0.\n   -x EXTENSION, --extension=EXTENSION\n                         Load extension EXTENSION.\n   -c CONFIG_FILE, --extension_configs=CONFIG_FILE\ndiff --git a/docs/library.md b/docs/library.md\nindex 5da2b3f..e71e1a9 100644\n--- a/docs/library.md\n+++ b/docs/library.md\n@@ -212,6 +212,22 @@ The default value is `4`.\n markdown.markdown(src, tab_length=2)\n ```\n \n+### Heading Offset { #heading_offset }\n+\n+The `heading_offset` keyword shifts the level of every heading by the given\n+number of levels. It must be a whole number from `0` to `5` and defaults to `0`.\n+Any other value raises a `ValueError`. Headings are never shifted beyond `h6`.\n+\n+``` python\n+markdown.markdown('# Title', heading_offset=1)\n+# '<h2>Title</h2>'\n+```\n+\n+The offset applies to all headings, including those created by extensions such\n+as [Markdown in HTML](extensions/md_in_html.md). The [Table of Contents](extensions/toc.md)\n+extension sees the shifted levels, so `toc_depth` and the tokens refer to the\n+levels in the output.\n+\n ## Working with Files\n \n The Python-Markdown library provides the function\ndiff --git a/markdown/__main__.py b/markdown/__main__.py\nindex 60f9a5e..b5788c1 100644\n--- a/markdown/__main__.py\n+++ b/markdown/__main__.py\n@@ -68,6 +68,9 @@ def parse_options(args=None, values=None):\n     parser.add_option(\"-n\", \"--no_lazy_ol\", dest=\"lazy_ol\",\n                       action='store_false', default=True,\n                       help=\"Observe number of first item of ordered lists.\")\n+    parser.add_option(\"--heading-offset\", dest=\"heading_offset\", type=\"int\",\n+                      default=0, metavar=\"N\",\n+                      help=\"Shift the level of every heading by N (0 to 5). Defaults to 0.\")\n     parser.add_option(\"-x\", \"--extension\", action=\"append\", dest=\"extensions\",\n                       help=\"Load extension EXTENSION.\", metavar=\"EXTENSION\")\n     parser.add_option(\"-c\", \"--extension_configs\",\n@@ -121,7 +124,8 @@ def parse_options(args=None, values=None):\n         'extension_configs': extension_configs,\n         'encoding': options.encoding,\n         'output_format': options.output_format,\n-        'lazy_ol': options.lazy_ol\n+        'lazy_ol': options.lazy_ol,\n+        'heading_offset': options.heading_offset\n     }\n \n     return opts, options.verbose\ndiff --git a/markdown/core.py b/markdown/core.py\nindex a62b311..32d216b 100644\n--- a/markdown/core.py\n+++ b/markdown/core.py\n@@ -49,6 +49,7 @@ class Markdown:\n \n     Attributes:\n         Markdown.tab_length (int): The number of spaces which correspond to a single tab. Default: `4`.\n+        Markdown.heading_offset (int): The number of levels every heading is shifted by. Default: `0`.\n         Markdown.ESCAPED_CHARS (list[str]): List of characters which get the backslash escape treatment.\n         Markdown.block_level_elements (list[str]): List of HTML tags which get treated as block-level elements.\n             See [`markdown.util.BLOCK_LEVEL_ELEMENTS`][] for the full list of elements.\n@@ -103,12 +104,19 @@ class Markdown:\n                 * `xhtml`: Outputs XHTML style tags. Default.\n                 * `html`: Outputs HTML style tags.\n             tab_length (int): Length of tabs in the source. Default: `4`\n+            heading_offset (int): Number of levels (`0` to `5`) by which to shift every heading,\n+                never beyond `h6`. Default: `0`\n \n         \"\"\"\n \n         self.last_run: float = 0.0\n         self.tab_length: int = kwargs.get('tab_length', 4)\n \n+        heading_offset = kwargs.get('heading_offset', 0)\n+        if isinstance(heading_offset, bool) or not isinstance(heading_offset, int) or not 0 <= heading_offset <= 5:\n+            raise ValueError('heading_offset must be a whole number from 0 to 5, got %r.' % (heading_offset,))\n+        self.heading_offset: int = heading_offset\n+\n         self.ESCAPED_CHARS: list[str] = [\n             '\\\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '>', '#', '+', '-', '.', '!'\n         ]\ndiff --git a/markdown/treeprocessors.py b/markdown/treeprocessors.py\nindex a148175..1d75a86 100644\n--- a/markdown/treeprocessors.py\n+++ b/markdown/treeprocessors.py\n@@ -40,6 +40,7 @@ def build_treeprocessors(md: Markdown, **kwargs: Any) -> util.Registry[Treeproce\n     \"\"\" Build the default  `treeprocessors` for Markdown. \"\"\"\n     treeprocessors = util.Registry()\n     treeprocessors.register(InlineProcessor(md), 'inline', 20)\n+    treeprocessors.register(HeadingOffsetTreeprocessor(md), 'heading_offset', 15)\n     treeprocessors.register(PrettifyTreeprocessor(md), 'prettify', 10)\n     treeprocessors.register(UnescapeTreeprocessor(md), 'unescape', 0)\n     return treeprocessors\n@@ -419,6 +420,18 @@ class InlineProcessor(Treeprocessor):\n         return tree\n \n \n+class HeadingOffsetTreeprocessor(Treeprocessor):\n+    \"\"\" Shift the level of every heading by `Markdown.heading_offset`, up to `h6`. \"\"\"\n+\n+    def run(self, root: etree.Element) -> None:\n+        offset = self.md.heading_offset\n+        if not offset:\n+            return\n+        for el in root.iter():\n+            if isinstance(el.tag, str) and len(el.tag) == 2 and el.tag[0] == 'h' and el.tag[1] in '123456':\n+                el.tag = 'h%d' % min(int(el.tag[1]) + offset, 6)\n+\n+\n class PrettifyTreeprocessor(Treeprocessor):\n     \"\"\" Add line breaks to the html document. \"\"\"\n \ndiff --git a/tests/test_apis.py b/tests/test_apis.py\nindex b0d3d67..50f906e 100644\n--- a/tests/test_apis.py\n+++ b/tests/test_apis.py\n@@ -800,6 +800,7 @@ class TestCliOptionParsing(unittest.TestCase):\n             'encoding': None,\n             'output_format': 'xhtml',\n             'lazy_ol': True,\n+            'heading_offset': 0,\n             'extensions': [],\n             'extension_configs': {},\n         }\n@@ -1016,3 +1017,45 @@ Some +test+ and a [+link+](http://test.com)\n \n         self.md.reset()\n         self.assertEqual(self.md.convert(test), result)\n+\n+\n+class TestHeadingOffset(unittest.TestCase):\n+    \"\"\" Test the `heading_offset` option. \"\"\"\n+\n+    def testDefault(self):\n+        self.assertEqual(markdown.markdown('# A'), '<h1>A</h1>')\n+\n+    def testHashAndSetext(self):\n+        self.assertEqual(\n+            markdown.markdown('# A\\n\\nB\\n===\\n\\nC\\n---', heading_offset=1),\n+            '<h2>A</h2>\\n<h2>B</h2>\\n<h3>C</h3>'\n+        )\n+\n+    def testClampedAtH6(self):\n+        self.assertEqual(markdown.markdown('###### A', heading_offset=5), '<h6>A</h6>')\n+        self.assertEqual(markdown.markdown('## A', heading_offset=5), '<h6>A</h6>')\n+\n+    def testMdInHtml(self):\n+        self.assertEqual(\n+            markdown.markdown('<div markdown=\"1\">\\n<h1>A</h1>\\n</div>', extensions=['md_in_html'], heading_offset=2),\n+            '<div>\\n<h3>A</h3>\\n</div>'\n+        )\n+\n+    def testToc(self):\n+        md = markdown.Markdown(extensions=['toc'], heading_offset=1)\n+        md.convert('# A\\n\\n## B')\n+        self.assertEqual([t['level'] for t in md.toc_tokens], [2])\n+        self.assertEqual(md.toc_tokens[0]['children'][0]['level'], 3)\n+        md = markdown.Markdown(extensions=['toc'], extension_configs={'toc': {'toc_depth': 2}}, heading_offset=1)\n+        md.convert('# A\\n\\n## B')\n+        self.assertEqual(md.toc_tokens[0]['children'], [])\n+\n+    def testInvalid(self):\n+        for value in (-1, 6, 1.5, '1', None, True):\n+            with self.assertRaises(ValueError):\n+                markdown.Markdown(heading_offset=value)\n+\n+    def testCommandLine(self):\n+        options, _ = parse_options(['--heading-offset', '2'])\n+        self.assertEqual(options['heading_offset'], 2)\n+        self.assertEqual(parse_options([])[0]['heading_offset'], 0)\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T06:58:22.678Z",
+  "runner_commit": "6acaf09"
+}
