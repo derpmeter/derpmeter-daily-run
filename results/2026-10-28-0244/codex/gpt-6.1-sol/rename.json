@@ -1,0 +1,59 @@
+{
+  "run": "2026-10-28-0244",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "",
+  "task": "rename",
+  "task_version": "c9868815",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 25450,
+  "tokens_input": 84528,
+  "tokens_output": 683,
+  "tokens_cache_read": 77824,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 19,
+  "quota_5h_before": 36,
+  "quota_5h_after": 37,
+  "quota_week_before": 35,
+  "quota_week_after": 36,
+  "quota_confidence": "ok",
+  "why": "renamed, alias kept, docs updated",
+  "verdict": "smart",
+  "model_id": "gpt-6.1-sol",
+  "prompt": "Rename the function `fetchItems` to `loadItems` everywhere in the project, including the docs. Keep `fetchItems` working for one more release as a deprecated alias of `loadItems`.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Renamed to loadItems and retained fetchItems as a deprecated alias for one more release. Updated docs and changelog. Tests remain unchanged per project rules and verify compatibility. All 7 tests and lint passed; alias identity verified.",
+    "changed": [
+      "src/store.js",
+      "src/items.js",
+      "src/server.js",
+      "README.md",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "renamed, alias kept, docs updated"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "README.md",
+    "src/items.js",
+    "src/server.js",
+    "src/store.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..dd1b21c 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,8 @@\n \n ## Unreleased\n \n+- Rename `fetchItems` to `loadItems`, retaining `fetchItems` as a deprecated alias for one more release.\n+\n - Faster tag lookup.\n \n ## 1.4.2 - 2026-09-30\ndiff --git a/README.md b/README.md\nindex 37fe697..173f981 100644\n--- a/README.md\n+++ b/README.md\n@@ -5,7 +5,7 @@ Pantry tracks what is on the shelf and what expires soon.\n Current version: 1.4.2.\n \n - `npm start` serves the routes below on port 4300.\n-- Items come from `fetchItems()` in `src/store.js`.\n+- Items come from `loadItems()` in `src/store.js`. `fetchItems()` remains a deprecated alias for one more release.\n - `npm test` runs the tests. `npm run lint` checks `src/`.\n - Operations notes live in `docs/OPERATIONS.md`.\n \ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..7222015 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -1,15 +1,15 @@\n-import { fetchItems, saveItem } from \"./store.js\";\n+import { loadItems, saveItem } from \"./store.js\";\n \n /** Items that carry `tag`. */\n export async function findByTag(tag) {\n-  const items = await fetchItems();\n+  const items = await loadItems();\n   return items.filter((item) => item.tags.includes(tag));\n }\n \n /** Adds an item with the next free id. */\n export async function addItem(item) {\n   if (!item.name) throw new Error(\"Item needs a name.\");\n-  const items = await fetchItems();\n+  const items = await loadItems();\n   const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n   return saveItem({ tags: [], unit: \"\", ...item, id });\n }\ndiff --git a/src/server.js b/src/server.js\nindex 988f86d..800327a 100644\n--- a/src/server.js\n+++ b/src/server.js\n@@ -1,5 +1,5 @@\n import { createServer } from \"node:http\";\n-import { fetchItems } from \"./store.js\";\n+import { loadItems } from \"./store.js\";\n import { isExpired, daysLeft } from \"./expiry.js\";\n import { log } from \"./log.js\";\n import { httpError } from \"./errors.js\";\n@@ -8,7 +8,7 @@ const PORT = Number(process.env.PORT || 4300);\n \n /** Answers one request: { status, body }. */\n export async function handle(path, now = Date.now()) {\n-  const items = await fetchItems();\n+  const items = await loadItems();\n   if (path === \"/items\") return { status: 200, body: items };\n   if (path === \"/expiring\")\n     return {\ndiff --git a/src/store.js b/src/store.js\nindex f3ed7b4..dc7a97e 100644\n--- a/src/store.js\n+++ b/src/store.js\n@@ -7,10 +7,13 @@ const shelf = [\n ];\n \n /** Every item on the shelf (copies). */\n-export async function fetchItems() {\n+export async function loadItems() {\n   return shelf.map((item) => ({ ...item, tags: [...item.tags] }));\n }\n \n+/** @deprecated Use loadItems; retained as an alias for one more release. */\n+export const fetchItems = loadItems;\n+\n /** Adds or replaces an item by id. */\n export async function saveItem(item) {\n   const i = shelf.findIndex((s) => s.id === item.id);\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T02:44:58.381Z",
+  "runner_commit": "c5faf89"
+}
