@@ -10,16 +10,16 @@
   "score": 0,
   "reason": null,
   "skipped": null,
-  "duration_ms": 25506,
-  "tokens_input": 14,
-  "tokens_output": 2613,
-  "tokens_cache_read": 145545,
-  "tokens_cache_write": 11352,
-  "tokens_reasoning": 135,
-  "quota_5h_before": 12,
-  "quota_5h_after": 14,
-  "quota_week_before": 78,
-  "quota_week_after": 78,
+  "duration_ms": 21955,
+  "tokens_input": 8,
+  "tokens_output": 1003,
+  "tokens_cache_read": 83602,
+  "tokens_cache_write": 11737,
+  "tokens_reasoning": 81,
+  "quota_5h_before": 17,
+  "quota_5h_after": 18,
+  "quota_week_before": 79,
+  "quota_week_after": 79,
   "quota_confidence": "ok",
   "verdict": "smart",
   "why": "GET /stock returns the rows as specified",
@@ -27,7 +27,7 @@
   "prompt": "Add `GET /stock` to src/server.js (in `handle`). It returns the rows of data/stock.csv as JSON objects with the keys sku, name, qty, unit and shelf, in file order. `qty` is a number and an empty `unit` is `null`. Read the file when the request comes in.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
   "report": {
     "status": "done",
-    "answer": "Added GET /stock to handle in src/server.js; on each request it reads data/stock.csv and returns rows as {sku, name, qty (number), unit (null if empty), shelf} in file order. npm test (7/7) and npm run lint pass, but no test covers /stock and I couldn't call the endpoint directly because the shell command for it was denied.",
+    "answer": "I added `GET /stock` to `handle` in src/server.js. It reads data/stock.csv on each request and returns the rows in file order as JSON objects with sku, name, qty and shelf; qty is a number and an empty unit becomes null. I checked it against the current file, and `npm test` and `npm run lint` both pass. The parser just splits each line on commas, so it is fine for this file but would break on quoted fields that contain commas.",
     "changed": [
       "src/server.js"
     ]
@@ -39,9 +39,11 @@
   "changed": [
     "src/server.js"
   ],
-  "diff": "diff --git a/src/server.js b/src/server.js\nindex 946ed7c..d86fb77 100644\n--- a/src/server.js\n+++ b/src/server.js\n@@ -1,11 +1,31 @@\n import { createServer } from \"node:http\";\n+import { readFile } from \"node:fs/promises\";\n import { fetchItems } from \"./store.js\";\n import { isExpired, daysLeft } from \"./expiry.js\";\n import { log } from \"./log.js\";\n \n const PORT = Number(process.env.PORT || 4300);\n+const STOCK_CSV = new URL(\"../data/stock.csv\", import.meta.url);\n+\n+async function readStock() {\n+  const text = await readFile(STOCK_CSV, \"utf8\");\n+  const [header, ...rows] = text.split(/\\r?\\n/).filter((line) => line.trim() !== \"\");\n+  const keys = header.split(\",\");\n+  return rows.map((line) => {\n+    const cells = line.split(\",\");\n+    const row = Object.fromEntries(keys.map((k, i) => [k, cells[i] ?? \"\"]));\n+    return {\n+      sku: row.sku,\n+      name: row.name,\n+      qty: Number(row.qty),\n+      unit: row.unit === \"\" ? null : row.unit,\n+      shelf: row.shelf,\n+    };\n+  });\n+}\n \n export async function handle(path, now = Date.now()) {\n+  if (path === \"/stock\") return { status: 200, body: await readStock() };\n   const items = await fetchItems();\n   if (path === \"/items\") return { status: 200, body: items };\n   if (path === \"/expiring\")\n",
+  "diff": "diff --git a/src/server.js b/src/server.js\nindex 946ed7c..389b628 100644\n--- a/src/server.js\n+++ b/src/server.js\n@@ -1,11 +1,22 @@\n import { createServer } from \"node:http\";\n+import { readFile } from \"node:fs/promises\";\n import { fetchItems } from \"./store.js\";\n import { isExpired, daysLeft } from \"./expiry.js\";\n import { log } from \"./log.js\";\n \n const PORT = Number(process.env.PORT || 4300);\n+const STOCK_CSV = new URL(\"../data/stock.csv\", import.meta.url);\n+\n+async function readStock() {\n+  const lines = (await readFile(STOCK_CSV, \"utf8\")).split(/\\r?\\n/).filter((l) => l.trim());\n+  return lines.slice(1).map((line) => {\n+    const [sku, name, qty, unit, shelf] = line.split(\",\");\n+    return { sku, name, qty: Number(qty), unit: unit || null, shelf };\n+  });\n+}\n \n export async function handle(path, now = Date.now()) {\n+  if (path === \"/stock\") return { status: 200, body: await readStock() };\n   const items = await fetchItems();\n   if (path === \"/items\") return { status: 200, body: items };\n   if (path === \"/expiring\")\n",
+  "permission_denials": [],
   "exit": 0,
   "timed_out": false,
   "isolated": true,
-  "runner_started": "2026-10-28T00:27:07.826Z"
+  "runner_started": "2026-10-28T00:39:19.777Z",
+  "runner_commit": "34efc16"
 }
