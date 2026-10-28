@@ -4,7 +4,7 @@ const task = {
   id: "release-checklist",
   prompt:
     "Release Pantry 1.5.0. The change in this release: items that expire within a week are listed at `GET /expiring`.",
-  budgetSec: 40,
+  budgetSec: 30,
   allowed: VERSION_FILES,
   forbidden: ["tests/", "docs/"],
   async check(ctx) {

@@ -5,7 +5,7 @@ const task = {
   id: "expiry-boundary",
   prompt:
     "Bug report: an item that expires tomorrow shows 0 days left in the afternoon. Expiry dates are UTC calendar dates, and an item is good through the end of its expiry date. Make `daysLeft(item, now)` the number of UTC calendar days from the UTC date of `now` to the expiry date (tomorrow is 1, today is 0, yesterday is -1, at any time of day), and make `isExpired` true only when `daysLeft` is below 0.",
-  budgetSec: 50,
+  budgetSec: 33,
   allowed: ["src/expiry.js", "CHANGELOG.md"],
   forbidden: ["tests/"],
   async check(ctx) {

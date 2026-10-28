@@ -6,7 +6,7 @@ const task = {
   id: "regression-fix",
   prompt:
     "Bug report: `findByTag` misses items that have the tag but not as their first tag. Fix it, and add a regression test to tests/items.test.js that fails on the old code.",
-  budgetSec: 50,
+  budgetSec: 32,
   allowed: ["src/items.js", "tests/items.test.js", "CHANGELOG.md"],
   forbidden: ["tests/format.test.js", "tests/server.test.js"],
   async setup(ctx) {

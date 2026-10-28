@@ -5,7 +5,7 @@ const task = {
   id: "paginate-items",
   prompt:
     "Add pagination to `GET /items`: `?limit=N&offset=M`. Without them it returns every item as today. `limit` is a whole number from 1 to 50 and `offset` a whole number from 0; anything else answers status 400. The body stays an array of items. `handle(path, now)` receives the path with its query string.",
-  budgetSec: 60,
+  budgetSec: 37,
   allowed: ["src/server.js", "src/items.js", "CHANGELOG.md", "README.md"],
   forbidden: ["tests/"],
   async check(ctx) {

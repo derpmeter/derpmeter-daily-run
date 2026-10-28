@@ -4,7 +4,7 @@ const task = {
   id: "fix-failing-test",
   prompt:
     "`npm test` has one failing test. Fix the bug in the source code so every test passes.",
-  budgetSec: 35,
+  budgetSec: 26,
   allowed: ["src/format.js", "CHANGELOG.md"],
   forbidden: ["tests/"],
   // The base project is green; this chore plants its bug.

@@ -5,7 +5,7 @@ const task = {
   id: "rename",
   prompt:
     "Rename the function `fetchItems` to `loadItems` everywhere in the project, including the docs. Keep `fetchItems` working for one more release as a deprecated alias of `loadItems`.",
-  budgetSec: 75,
+  budgetSec: 32,
   allowed: ["src/store.js", "src/items.js", "src/server.js", "tests/items.test.js", "README.md", "CHANGELOG.md"],
   forbidden: [],
   async check(ctx) {

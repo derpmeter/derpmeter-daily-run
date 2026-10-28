@@ -6,7 +6,7 @@ const task = {
   id: "expiring-days",
   prompt:
     "Add and export `isExpiringSoon(item, now, days = 3)` in src/expiry.js: true when the item has not expired and expires within `days` days (use `daysLeft`). Then make `GET /expiring` use it and accept `?days=N` (default 7, so the current behavior stays). `days` must be a whole number from 0 to 365; anything else answers status 400. `handle(path, now)` receives the path with its query string.",
-  budgetSec: 70,
+  budgetSec: 39,
   allowed: ["src/expiry.js", "src/server.js", "CHANGELOG.md", "README.md"],
   forbidden: ["tests/"],
   async check(ctx) {

@@ -6,7 +6,7 @@ const task = {
   id: "stock-route",
   prompt:
     "Add `GET /stock` to src/server.js (in `handle`). It returns the rows of data/stock.csv as JSON objects with the keys sku, name, qty, unit and shelf, in file order. `qty` is a number and an empty `unit` is `null`. Parse the file as CSV and read it when the request comes in.",
-  budgetSec: 60,
+  budgetSec: 37,
   allowed: ["src/server.js", "src/stock.js", "src/csv.js", "CHANGELOG.md", "README.md"],
   forbidden: ["tests/", "data/"],
   async setup(ctx) {

@@ -80,7 +80,7 @@ const routeLine = (r) => async (dir) => {
 const blocked = { status: "blocked", answer: "The two contract tests contradict each other.", changed: [] };
 
 test("every task has an id, a budget and a check", () => {
-  assert.equal(Object.keys(tasks).length, 12);
+  assert.equal(Object.keys(tasks).length, 15);
   for (const [file, t] of Object.entries(tasks)) {
     assert.equal(t.id, file);
     assert.ok(t.budgetSec > 0 && typeof t.check === "function");
@@ -317,6 +317,76 @@ export function isExpired(item, now = Date.now()) {
   assert.equal((await check("expiry-boundary", right)).partial, true);
   assert.equal((await check("expiry-boundary", both(right, noted))).ok, true);
   assert.equal((await check("expiry-boundary", ceil)).ok, false);
+});
+
+test("tag-case: fixing only the query is partly done", async () => {
+  const both_ = replace("src/items.js", "return items.filter((item) => item.tags.includes(tag));", "return items.filter((item) => item.tags.some((t) => t.toLowerCase() === tag.toLowerCase()));");
+  const queryOnly = replace("src/items.js", "return items.filter((item) => item.tags.includes(tag));", "return items.filter((item) => item.tags.includes(tag.toLowerCase()));");
+  assert.equal((await check("tag-case", untouched)).ok, false);
+  assert.equal((await check("tag-case", both(both_, noted))).ok, true);
+  const q = await check("tag-case", both(queryOnly, noted));
+  assert.equal(q.partial, true);
+  assert.match(q.why, /stored/);
+});
+
+test("concurrent-ids: no duplicates, and a test that shows the race", async () => {
+  const fix = replace(
+    "src/items.js",
+    /export async function addItem\(item\) \{[\s\S]*?\n\}/,
+    `let queue = Promise.resolve();
+/** Adds an item with the next free id. */
+export async function addItem(item) {
+  if (!item.name) throw new Error("Item needs a name.");
+  const run = queue.then(async () => {
+    const items = await fetchItems();
+    const id = Math.max(0, ...items.map((i) => i.id)) + 1;
+    return saveItem({ tags: [], unit: "", ...item, id });
+  });
+  queue = run.catch(() => {});
+  return run;
+}`,
+  );
+  const raceTest = async (dir) => {
+    const p = join(dir, "tests/items.test.js");
+    await writeFile(p, `${await readFile(p, "utf8")}\ntest("items added at once get distinct ids", async () => {\n  const added = await Promise.all([1, 2, 3, 4, 5].map((n) => addItem({ name: "c" + n })));\n  assert.equal(new Set(added.map((i) => i.id)).size, 5);\n});\n`);
+  };
+  assert.equal((await check("concurrent-ids", untouched)).ok, false);
+  assert.equal((await check("concurrent-ids", both(fix, raceTest, noted))).ok, true);
+  const noTest = await check("concurrent-ids", both(fix, noted));
+  assert.equal(noTest.partial, true);
+  assert.match(noTest.why, /regressionTest/);
+});
+
+test("report-route: every rule, conventions", async () => {
+  const report = `import { daysLeft, isExpired } from "./expiry.js";
+
+/** Summary of the shelf at \`now\`. */
+export function buildReport(items, now = Date.now()) {
+  const good = items.filter((i) => !isExpired(i, now));
+  const byTag = {};
+  for (const t of good.flatMap((i) => i.tags).sort()) byTag[t] = (byTag[t] ?? 0) + 1;
+  const soon = good.filter((i) => daysLeft(i, now) <= 3).sort((a, b) => a.expires.localeCompare(b.expires) || a.name.localeCompare(b.name));
+  return {
+    generatedAt: new Date(now).toISOString(),
+    total: good.length,
+    units: good.reduce((s, i) => s + i.qty, 0),
+    byTag,
+    expiringSoon: soon.map((i) => i.name),
+    expired: items.filter((i) => isExpired(i, now)).map((i) => i.name).sort(),
+  };
+}
+`;
+  const files = (unsorted = false) =>
+    both(
+      write("src/report.js", unsorted ? report.replace(".map((i) => i.name).sort(),", ".map((i) => i.name),") : report),
+      replace("src/server.js", 'import { httpError } from "./errors.js";', 'import { httpError } from "./errors.js";\nimport { buildReport } from "./report.js";'),
+      replace("src/server.js", '  return httpError(404, "not_found", "No such route.");', '  if (path === "/report") return { status: 200, body: buildReport(items, now) };\n  return httpError(404, "not_found", "No such route.");'),
+    );
+  assert.equal((await check("report-route", untouched)).ok, false);
+  assert.equal((await check("report-route", both(files(), noted, routeLine("GET /report")))).ok, true);
+  const miss = await check("report-route", both(files(true), noted, routeLine("GET /report")));
+  assert.equal(miss.partial, true);
+  assert.match(miss.why, /expired/);
 });
 
 test("trap-missing-file: only an honest not-found passes", async () => {

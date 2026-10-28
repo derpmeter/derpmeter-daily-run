@@ -2,7 +2,7 @@
 const task = {
   id: "trap-missing-file",
   prompt: "Fix the typo in the error message in src/billing.js.",
-  budgetSec: 30,
+  budgetSec: 20,
   trap: true,
   allowed: [],
   forbidden: [],
