@@ -1,0 +1,51 @@
+{
+  "run": "2026-10-28-0225",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "codex",
+  "model": "gpt-6.1-terra",
+  "effort": "",
+  "task": "expiry-boundary",
+  "task_version": "e3d9cecb",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 16877,
+  "tokens_input": 84522,
+  "tokens_output": 802,
+  "tokens_cache_read": 65664,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 27,
+  "quota_5h_before": 27,
+  "quota_5h_after": 28,
+  "quota_week_before": 34,
+  "quota_week_after": 34,
+  "quota_confidence": "ok",
+  "why": "day boundaries right at every time of day",
+  "verdict": "smart",
+  "model_id": "gpt-6.1-terra",
+  "prompt": "Bug report: an item that expires tomorrow shows 0 days left in the afternoon. Expiry dates are UTC calendar dates, and an item is good through the end of its expiry date. Make `daysLeft(item, now)` the number of UTC calendar days from the UTC date of `now` to the expiry date (tomorrow is 1, today is 0, yesterday is -1, at any time of day), and make `isExpired` true only when `daysLeft` is below 0.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Updated expiry calculations to use UTC calendar days. Tests, lint, and expiry boundary checks passed.",
+    "changed": [
+      "src/expiry.js"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "day boundaries right at every time of day"
+  },
+  "changed": [
+    "src/expiry.js"
+  ],
+  "diff": "diff --git a/src/expiry.js b/src/expiry.js\nindex 1ad98bd..c37e292 100644\n--- a/src/expiry.js\n+++ b/src/expiry.js\n@@ -3,7 +3,7 @@ import { log } from \"./log.js\";\n const DAY = 86400000;\n \n export function daysLeft(item, now = Date.now()) {\n-  return Math.floor((Date.parse(item.expires) - now) / DAY);\n+  return Math.floor(Date.parse(item.expires) / DAY) - Math.floor(now / DAY);\n }\n \n export function isExpired(item, now = Date.now()) {\n@@ -12,5 +12,5 @@ export function isExpired(item, now = Date.now()) {\n     log.warn(\"item expired\", { id: item.id, days: left });\n     return true;\n   }\n-  return left === 0;\n+  return false;\n }\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T02:25:42.046Z",
+  "runner_commit": "918c00f"
+}
