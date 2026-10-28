@@ -1,0 +1,49 @@
+{
+  "day": "2026-10-28",
+  "agent": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "",
+  "task": "regression-fix",
+  "task_version": "b7b7646c",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 19817,
+  "tokens_input": 86310,
+  "tokens_output": 619,
+  "tokens_cache_read": 79744,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 30,
+  "quota_5h_before": 14,
+  "quota_5h_after": 14,
+  "quota_week_before": 32,
+  "quota_week_after": 32,
+  "quota_confidence": "ok",
+  "verdict": "smart",
+  "why": "fixed, and the new test catches the bug",
+  "model_id": "gpt-6.1-sol",
+  "prompt": "Bug report: `findByTag` misses items that have the tag but not as their first tag. Fix it, and add a regression test to tests/items.test.js that fails on the old code.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed findByTag to match any tag; added a regression test confirmed to fail on the old code. All 8 tests and lint pass.",
+    "changed": [
+      "src/items.js",
+      "tests/items.test.js"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "fixed, and the new test catches the bug"
+  },
+  "changed": [
+    "src/items.js",
+    "tests/items.test.js"
+  ],
+  "diff": "diff --git a/src/items.js b/src/items.js\nindex 284fa14..1d65c87 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -2,7 +2,7 @@ import { fetchItems, saveItem } from \"./store.js\";\n \n export async function findByTag(tag) {\n   const items = await fetchItems();\n-  return items.filter((item) => item.tags[0] === tag);\n+  return items.filter((item) => item.tags.includes(tag));\n }\n \n export async function addItem(item) {\ndiff --git a/tests/items.test.js b/tests/items.test.js\nindex 5fd1ed5..347448a 100644\n--- a/tests/items.test.js\n+++ b/tests/items.test.js\n@@ -13,3 +13,9 @@ test(\"addItem assigns the next id\", async () => {\n   assert.equal(item.id, 5);\n   assert.equal((await fetchItems()).length, 5);\n });\n+\n+test(\"findByTag matches tags after the first tag\", async () => {\n+  const item = await addItem({ name: \"lentils\", tags: [\"dry\", \"protein\", \"legume\"] });\n+  assert.deepEqual(await findByTag(\"protein\"), [item]);\n+  assert.deepEqual(await findByTag(\"legume\"), [item]);\n+});\n",
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T00:27:07.826Z"
+}

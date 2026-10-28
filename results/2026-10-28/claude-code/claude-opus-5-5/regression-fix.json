@@ -1,0 +1,49 @@
+{
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "regression-fix",
+  "task_version": "b7b7646c",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 25941,
+  "tokens_input": 12,
+  "tokens_output": 1577,
+  "tokens_cache_read": 116102,
+  "tokens_cache_write": 9428,
+  "tokens_reasoning": 177,
+  "quota_5h_before": 12,
+  "quota_5h_after": 12,
+  "quota_week_before": 78,
+  "quota_week_after": 78,
+  "quota_confidence": "ok",
+  "verdict": "smart",
+  "why": "fixed, and the new test catches the bug",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Bug report: `findByTag` misses items that have the tag but not as their first tag. Fix it, and add a regression test to tests/items.test.js that fails on the old code.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "findByTag only compared the first tag (`item.tags[0] === tag`), so I changed it to `item.tags.includes(tag)` in src/items.js and added a regression test that adds an item tagged [\"dairy\", \"fridge\"] and checks that findByTag(\"fridge\") returns it. On the old code that item isn't returned, so the test fails. I haven't run it: Bash was denied in this session, so neither `npm test` nor `npm run lint` has been run. The new test goes last in the file because the existing tests share the in-memory shelf and expect exact results.",
+    "changed": [
+      "src/items.js",
+      "tests/items.test.js"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "fixed, and the new test catches the bug"
+  },
+  "changed": [
+    "src/items.js",
+    "tests/items.test.js"
+  ],
+  "diff": "diff --git a/src/items.js b/src/items.js\nindex 284fa14..1d65c87 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -2,7 +2,7 @@ import { fetchItems, saveItem } from \"./store.js\";\n \n export async function findByTag(tag) {\n   const items = await fetchItems();\n-  return items.filter((item) => item.tags[0] === tag);\n+  return items.filter((item) => item.tags.includes(tag));\n }\n \n export async function addItem(item) {\ndiff --git a/tests/items.test.js b/tests/items.test.js\nindex 5fd1ed5..ee71b06 100644\n--- a/tests/items.test.js\n+++ b/tests/items.test.js\n@@ -13,3 +13,9 @@ test(\"addItem assigns the next id\", async () => {\n   assert.equal(item.id, 5);\n   assert.equal((await fetchItems()).length, 5);\n });\n+\n+test(\"findByTag matches a tag that is not the first tag\", async () => {\n+  await addItem({ name: \"butter\", qty: 1, unit: \"block\", tags: [\"dairy\", \"fridge\"] });\n+  const names = (await findByTag(\"fridge\")).map((i) => i.name);\n+  assert.ok(names.includes(\"butter\"));\n+});\n",
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T00:27:07.826Z"
+}
