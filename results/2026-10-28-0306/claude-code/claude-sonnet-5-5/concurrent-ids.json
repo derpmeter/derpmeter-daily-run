@@ -1,0 +1,55 @@
+{
+  "run": "2026-10-28-0306",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-sonnet-5-5",
+  "effort": "",
+  "task": "concurrent-ids",
+  "task_version": "26d05873",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 20614,
+  "tokens_input": 123060,
+  "tokens_output": 1805,
+  "tokens_cache_read": 110216,
+  "tokens_cache_write": 12834,
+  "tokens_reasoning": 136,
+  "quota_5h_before": 5,
+  "quota_5h_after": 5,
+  "quota_week_before": 81,
+  "quota_week_after": 81,
+  "quota_confidence": "ok",
+  "why": "no duplicate ids, the test catches the race, fix noted",
+  "verdict": "smart",
+  "model_id": "claude-sonnet-5-5",
+  "prompt": "Bug report: items added at the same time sometimes get the same id. Fix it and add a regression test to tests/items.test.js that fails on the old code.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Concurrent addItem calls both read the same item list and picked the same id; addItem now serializes id assignment and save through a promise queue. The new regression test fails on the old code and passes now; npm test and npm run lint pass.",
+    "changed": [
+      "src/items.js",
+      "tests/items.test.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "no duplicate ids, the test catches the race, fix noted"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js",
+    "tests/items.test.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..b13e049 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Faster tag lookup.\n+- Fix duplicate ids when items are added at the same time.\n \n ## 1.4.2 - 2026-09-30\n \ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..fa2f1be 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -6,10 +6,17 @@ export async function findByTag(tag) {\n   return items.filter((item) => item.tags.includes(tag));\n }\n \n+// Tail of the add queue: id assignment and save must not interleave.\n+let addQueue = Promise.resolve();\n+\n /** Adds an item with the next free id. */\n export async function addItem(item) {\n   if (!item.name) throw new Error(\"Item needs a name.\");\n-  const items = await fetchItems();\n-  const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n-  return saveItem({ tags: [], unit: \"\", ...item, id });\n+  const run = addQueue.then(async () => {\n+    const items = await fetchItems();\n+    const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n+    return saveItem({ tags: [], unit: \"\", ...item, id });\n+  });\n+  addQueue = run.catch(() => {});\n+  return run;\n }\ndiff --git a/tests/items.test.js b/tests/items.test.js\nindex 5fd1ed5..1d4cf21 100644\n--- a/tests/items.test.js\n+++ b/tests/items.test.js\n@@ -13,3 +13,13 @@ test(\"addItem assigns the next id\", async () => {\n   assert.equal(item.id, 5);\n   assert.equal((await fetchItems()).length, 5);\n });\n+\n+test(\"addItem gives concurrent adds distinct ids\", async () => {\n+  const added = await Promise.all([\n+    addItem({ name: \"salt\", qty: 1 }),\n+    addItem({ name: \"pepper\", qty: 1 }),\n+    addItem({ name: \"sugar\", qty: 1 }),\n+  ]);\n+  const ids = added.map((i) => i.id);\n+  assert.equal(new Set(ids).size, 3);\n+});\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T03:06:06.720Z",
+  "runner_commit": "ea7be1c"
+}

@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0306",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "fix-failing-test",
+  "task_version": "42f1866f",
+  "cli_version": "1.4.8",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 46670,
+  "tokens_input": 19642,
+  "tokens_output": 989,
+  "tokens_cache_read": 31427,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 291,
+  "quota_5h_before": 9.328,
+  "quota_5h_after": 9.649,
+  "quota_week_before": 4.012,
+  "quota_week_after": 3.816,
+  "quota_confidence": "ok",
+  "why": "47s over 26s",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "`npm test` has one failing test. Fix the bug in the source code so every test passes.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Fixed `formatQty` in `src/format.js` to return a singular unit or item name when `qty` is 1, and updated `CHANGELOG.md`.",
+    "changed": [
+      "src/format.js",
+      "CHANGELOG.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "tests pass, fix noted"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/format.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..0cb7abc 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Fix singular unit formatting in `formatQty`.\n - Faster tag lookup.\n \n ## 1.4.2 - 2026-09-30\ndiff --git a/src/format.js b/src/format.js\nindex ebbf7c4..0dbf1e4 100644\n--- a/src/format.js\n+++ b/src/format.js\n@@ -2,5 +2,5 @@\n /** \"2 bags\", \"1 carton\", \"6 eggs\". */\n export function formatQty(qty, unit, name) {\n   const word = unit || name;\n-  return `${qty} ${word}s`;\n+  return qty === 1 ? `${qty} ${word}` : `${qty} ${word}s`;\n }\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": false,
+  "runner_started": "2026-10-28T03:06:06.720Z",
+  "runner_commit": "ea7be1c"
+}

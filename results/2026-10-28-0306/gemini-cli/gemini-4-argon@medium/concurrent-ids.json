@@ -1,0 +1,55 @@
+{
+  "run": "2026-10-28-0306",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "concurrent-ids",
+  "task_version": "26d05873",
+  "cli_version": "1.4.8",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 71503,
+  "tokens_input": 25680,
+  "tokens_output": 1709,
+  "tokens_cache_read": 61792,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 0,
+  "quota_5h_before": 7.836,
+  "quota_5h_after": 7.986,
+  "quota_week_before": 3.307,
+  "quota_week_after": 3.345,
+  "quota_confidence": "ok",
+  "why": "72s over 40s",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "Bug report: items added at the same time sometimes get the same id. Fix it and add a regression test to tests/items.test.js that fails on the old code.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Serialized `addItem` operations in `src/items.js` so concurrent item additions assign distinct sequential IDs, and added a regression test in `tests/items.test.js`.",
+    "changed": [
+      "CHANGELOG.md",
+      "src/items.js",
+      "tests/items.test.js"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "no duplicate ids, the test catches the race, fix noted"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js",
+    "tests/items.test.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..ee4a149 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Fix duplicate ids when items are added concurrently.\n - Faster tag lookup.\n \n ## 1.4.2 - 2026-09-30\ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..4ad3e5c 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -6,10 +6,17 @@ export async function findByTag(tag) {\n   return items.filter((item) => item.tags.includes(tag));\n }\n \n+let tail = Promise.resolve();\n+\n /** Adds an item with the next free id. */\n export async function addItem(item) {\n   if (!item.name) throw new Error(\"Item needs a name.\");\n-  const items = await fetchItems();\n-  const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n-  return saveItem({ tags: [], unit: \"\", ...item, id });\n+  const run = async () => {\n+    const items = await fetchItems();\n+    const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n+    return saveItem({ tags: [], unit: \"\", ...item, id });\n+  };\n+  const next = tail.then(run, run);\n+  tail = next.catch(() => {});\n+  return next;\n }\ndiff --git a/tests/items.test.js b/tests/items.test.js\nindex 5fd1ed5..52ce28e 100644\n--- a/tests/items.test.js\n+++ b/tests/items.test.js\n@@ -13,3 +13,13 @@ test(\"addItem assigns the next id\", async () => {\n   assert.equal(item.id, 5);\n   assert.equal((await fetchItems()).length, 5);\n });\n+\n+test(\"concurrent addItem calls assign distinct ids\", async () => {\n+  const [a, b] = await Promise.all([\n+    addItem({ name: \"salt\", qty: 1, unit: \"box\" }),\n+    addItem({ name: \"sugar\", qty: 1, unit: \"bag\" }),\n+  ]);\n+  assert.notEqual(a.id, b.id);\n+  assert.deepEqual([a.id, b.id].sort((x, y) => x - y), [6, 7]);\n+  assert.equal((await fetchItems()).length, 7);\n+});\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": false,
+  "runner_started": "2026-10-28T03:06:06.720Z",
+  "runner_commit": "ea7be1c"
+}

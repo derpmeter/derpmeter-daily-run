@@ -1,0 +1,57 @@
+{
+  "run": "2026-10-28-0306",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "report-route",
+  "task_version": "3263824f",
+  "cli_version": "1.4.8",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 143359,
+  "tokens_input": 38722,
+  "tokens_output": 7910,
+  "tokens_cache_read": 119338,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 4416,
+  "quota_5h_before": 9.894,
+  "quota_5h_after": 10.911,
+  "quota_week_before": 3.877,
+  "quota_week_after": 4.162,
+  "quota_confidence": "ok",
+  "why": "143s over 45s",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "Add `GET /report`, built by an exported `buildReport(items, now)` in a new src/report.js. The body is an object:\n- `generatedAt`: `now` as an ISO 8601 string.\n- `total`: the number of items that have not expired; `units`: the sum of their `qty`.\n- `byTag`: for items that have not expired, tag → number of items, with the keys in alphabetical order.\n- `expiringSoon`: names of items that have not expired and have at most 3 days left, sorted by expiry date, then by name.\n- `expired`: names of expired items, sorted by name.\nUse `daysLeft` and `isExpired` from src/expiry.js.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Added `buildReport(items, now)` in `src/report.js` and exposed `GET /report` in `src/server.js`.",
+    "changed": [
+      "src/report.js",
+      "src/server.js",
+      "README.md",
+      "CHANGELOG.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "every report rule right, conventions kept"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "README.md",
+    "src/report.js",
+    "src/server.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..69cfdf2 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Add `GET /report` and `buildReport`.\n - Faster tag lookup.\n \n ## 1.4.2 - 2026-09-30\ndiff --git a/README.md b/README.md\nindex 37fe697..b1cc235 100644\n--- a/README.md\n+++ b/README.md\n@@ -13,3 +13,4 @@ Current version: 1.4.2.\n \n - `GET /items`: every item.\n - `GET /expiring`: items that expire within a week.\n+- `GET /report`: shelf summary report.\ndiff --git a/src/report.js b/src/report.js\nnew file mode 100644\nindex 0000000..b8f93c2\n--- /dev/null\n+++ b/src/report.js\n@@ -0,0 +1,40 @@\n+import { daysLeft, isExpired } from \"./expiry.js\";\n+\n+/** Builds a shelf summary report as of `now`. */\n+export function buildReport(items, now = Date.now()) {\n+  const active = [];\n+  const expired = [];\n+  for (const item of items) {\n+    if (isExpired(item, now)) expired.push(item.name);\n+    else active.push(item);\n+  }\n+  const tagCounts = {};\n+  let units = 0;\n+  for (const item of active) {\n+    units += item.qty;\n+    for (const tag of item.tags) {\n+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;\n+    }\n+  }\n+  const byTag = {};\n+  for (const tag of Object.keys(tagCounts).sort()) {\n+    byTag[tag] = tagCounts[tag];\n+  }\n+  const expiringSoon = active\n+    .filter((item) => daysLeft(item, now) <= 3)\n+    .sort(\n+      (a, b) =>\n+        Date.parse(a.expires) - Date.parse(b.expires) ||\n+        (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),\n+    )\n+    .map((item) => item.name);\n+  expired.sort();\n+  return {\n+    generatedAt: new Date(now).toISOString(),\n+    total: active.length,\n+    units,\n+    byTag,\n+    expiringSoon,\n+    expired,\n+  };\n+}\ndiff --git a/src/server.js b/src/server.js\nindex 988f86d..a4949a1 100644\n--- a/src/server.js\n+++ b/src/server.js\n@@ -1,6 +1,7 @@\n import { createServer } from \"node:http\";\n import { fetchItems } from \"./store.js\";\n import { isExpired, daysLeft } from \"./expiry.js\";\n+import { buildReport } from \"./report.js\";\n import { log } from \"./log.js\";\n import { httpError } from \"./errors.js\";\n \n@@ -15,6 +16,7 @@ export async function handle(path, now = Date.now()) {\n       status: 200,\n       body: items.filter((i) => !isExpired(i, now) && daysLeft(i, now) <= 7),\n     };\n+  if (path === \"/report\") return { status: 200, body: buildReport(items, now) };\n   return httpError(404, \"not_found\", \"No such route.\");\n }\n \n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": false,
+  "runner_started": "2026-10-28T03:06:06.720Z",
+  "runner_commit": "ea7be1c"
+}

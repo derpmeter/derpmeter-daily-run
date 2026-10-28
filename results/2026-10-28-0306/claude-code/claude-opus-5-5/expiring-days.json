@@ -1,0 +1,57 @@
+{
+  "run": "2026-10-28-0306",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "expiring-days",
+  "task_version": "976cf09a",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 26182,
+  "tokens_input": 104622,
+  "tokens_output": 2587,
+  "tokens_cache_read": 88800,
+  "tokens_cache_write": 15814,
+  "tokens_reasoning": 640,
+  "quota_5h_before": 2,
+  "quota_5h_after": 3,
+  "quota_week_before": 80,
+  "quota_week_after": 80,
+  "quota_confidence": "ok",
+  "why": "helper, ?days, default, validation and conventions all right",
+  "verdict": "smart",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Add and export `isExpiringSoon(item, now, days = 3)` in src/expiry.js: true when the item has not expired and expires within `days` days (use `daysLeft`). Then make `GET /expiring` use it and accept `?days=N` (default 7, so the current behavior stays). `days` must be a whole number from 0 to 365; anything else answers status 400. `handle(path, now)` receives the path with its query string.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "I added `isExpiringSoon(item, now, days = 3)` in src/expiry.js and made `GET /expiring` use it. The route takes `?days=N` (default 7) and answers 400 `invalid_days` for anything that isn't a whole number from 0 to 365. `npm test` (7/7) and lint pass. I also ran a manual check: no `days` still returns only milk, and bad values like 366, -1, 1.5, an empty value and abc all get 400. Other changes: `handle` now reads the path and query itself, the server passes it the full `req.url`, and the README route list and CHANGELOG are updated. One difference: the function works from `daysLeft` alone, so `/expiring` no longer logs the \"item expired\" warning that `isExpired` used to write.",
+    "changed": [
+      "src/expiry.js",
+      "src/server.js",
+      "README.md",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "helper, ?days, default, validation and conventions all right"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "README.md",
+    "src/expiry.js",
+    "src/server.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..e93d0a6 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Faster tag lookup.\n+- `GET /expiring` accepts `?days=N` (0 to 365, default 7); add `isExpiringSoon`.\n \n ## 1.4.2 - 2026-09-30\n \ndiff --git a/README.md b/README.md\nindex 37fe697..c5ae799 100644\n--- a/README.md\n+++ b/README.md\n@@ -12,4 +12,4 @@ Current version: 1.4.2.\n ## Routes\n \n - `GET /items`: every item.\n-- `GET /expiring`: items that expire within a week.\n+- `GET /expiring`: items that expire within a week. `?days=N` (0 to 365) sets the window.\ndiff --git a/src/expiry.js b/src/expiry.js\nindex 0a7b267..c0faa91 100644\n--- a/src/expiry.js\n+++ b/src/expiry.js\n@@ -16,3 +16,9 @@ export function isExpired(item, now = Date.now()) {\n   }\n   return left === 0;\n }\n+\n+/** True when the item has not expired and expires within `days` days. */\n+export function isExpiringSoon(item, now = Date.now(), days = 3) {\n+  const left = daysLeft(item, now);\n+  return left > 0 && left <= days;\n+}\ndiff --git a/src/server.js b/src/server.js\nindex 988f86d..0d8345b 100644\n--- a/src/server.js\n+++ b/src/server.js\n@@ -1,6 +1,6 @@\n import { createServer } from \"node:http\";\n import { fetchItems } from \"./store.js\";\n-import { isExpired, daysLeft } from \"./expiry.js\";\n+import { isExpiringSoon } from \"./expiry.js\";\n import { log } from \"./log.js\";\n import { httpError } from \"./errors.js\";\n \n@@ -8,19 +8,22 @@ const PORT = Number(process.env.PORT || 4300);\n \n /** Answers one request: { status, body }. */\n export async function handle(path, now = Date.now()) {\n+  const url = new URL(path, \"http://x\");\n   const items = await fetchItems();\n-  if (path === \"/items\") return { status: 200, body: items };\n-  if (path === \"/expiring\")\n-    return {\n-      status: 200,\n-      body: items.filter((i) => !isExpired(i, now) && daysLeft(i, now) <= 7),\n-    };\n+  if (url.pathname === \"/items\") return { status: 200, body: items };\n+  if (url.pathname === \"/expiring\") {\n+    const raw = url.searchParams.get(\"days\");\n+    if (raw !== null && !(/^\\d+$/.test(raw) && Number(raw) <= 365))\n+      return httpError(400, \"invalid_days\", \"days must be a whole number from 0 to 365.\");\n+    const days = raw === null ? 7 : Number(raw);\n+    return { status: 200, body: items.filter((i) => isExpiringSoon(i, now, days)) };\n+  }\n   return httpError(404, \"not_found\", \"No such route.\");\n }\n \n if (import.meta.url === `file://${process.argv[1]}`) {\n   createServer(async (req, res) => {\n-    const { status, body } = await handle(new URL(req.url, \"http://x\").pathname);\n+    const { status, body } = await handle(req.url);\n     res.writeHead(status, { \"content-type\": \"application/json\" });\n     res.end(JSON.stringify(body));\n   }).listen(PORT, () => log.info(\"listening\", { port: PORT }));\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T03:06:06.720Z",
+  "runner_commit": "ea7be1c"
+}

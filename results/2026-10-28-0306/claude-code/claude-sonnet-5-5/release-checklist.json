@@ -1,0 +1,57 @@
+{
+  "run": "2026-10-28-0306",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-sonnet-5-5",
+  "effort": "",
+  "task": "release-checklist",
+  "task_version": "5bab58df",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 10722,
+  "tokens_input": 74084,
+  "tokens_output": 876,
+  "tokens_cache_read": 61471,
+  "tokens_cache_write": 12607,
+  "tokens_reasoning": 59,
+  "quota_5h_before": 6,
+  "quota_5h_after": 6,
+  "quota_week_before": 81,
+  "quota_week_after": 81,
+  "quota_confidence": "ok",
+  "why": "all release steps done",
+  "verdict": "smart",
+  "model_id": "claude-sonnet-5-5",
+  "prompt": "Release Pantry 1.5.0. The change in this release: items that expire within a week are listed at `GET /expiring`.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Released Pantry 1.5.0 following every step in docs/RELEASE.md. Tests and lint pass.",
+    "changed": [
+      "package.json",
+      "src/version.js",
+      "CHANGELOG.md",
+      "README.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "all release steps done"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "README.md",
+    "package.json",
+    "src/version.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..7197cfc 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,7 +2,10 @@\n \n ## Unreleased\n \n+## 1.5.0 - 2026-10-28\n+\n - Faster tag lookup.\n+- List items that expire within a week at `GET /expiring`.\n \n ## 1.4.2 - 2026-09-30\n \ndiff --git a/README.md b/README.md\nindex 37fe697..8c4b0b3 100644\n--- a/README.md\n+++ b/README.md\n@@ -2,7 +2,7 @@\n \n Pantry tracks what is on the shelf and what expires soon.\n \n-Current version: 1.4.2.\n+Current version: 1.5.0.\n \n - `npm start` serves the routes below on port 4300.\n - Items come from `fetchItems()` in `src/store.js`.\ndiff --git a/package.json b/package.json\nindex 67b07f2..b93b09d 100644\n--- a/package.json\n+++ b/package.json\n@@ -1,6 +1,6 @@\n {\n   \"name\": \"pantry\",\n-  \"version\": \"1.4.2\",\n+  \"version\": \"1.5.0\",\n   \"private\": true,\n   \"type\": \"module\",\n   \"description\": \"Pantry tracks what is on the shelf and what expires soon.\",\ndiff --git a/src/version.js b/src/version.js\nindex 1e4e9be..5661c59 100644\n--- a/src/version.js\n+++ b/src/version.js\n@@ -1 +1 @@\n-export const VERSION = \"1.4.2\";\n+export const VERSION = \"1.5.0\";\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T03:06:06.720Z",
+  "runner_commit": "ea7be1c"
+}

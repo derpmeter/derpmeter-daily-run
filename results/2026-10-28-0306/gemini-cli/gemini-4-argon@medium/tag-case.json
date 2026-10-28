@@ -1,0 +1,53 @@
+{
+  "run": "2026-10-28-0306",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "tag-case",
+  "task_version": "6ba11cc4",
+  "cli_version": "1.4.8",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 114927,
+  "tokens_input": 33960,
+  "tokens_output": 1828,
+  "tokens_cache_read": 52842,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 601,
+  "quota_5h_before": 10.911,
+  "quota_5h_after": 10.951,
+  "quota_week_before": 4.162,
+  "quota_week_after": 4.171,
+  "quota_confidence": "ok",
+  "why": "115s over 30s",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "Bug report: `findByTag(\"Fridge\")` returns nothing although milk is in the fridge. Tags should match regardless of letter case.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Updated `findByTag` to compare tags case-insensitively and added a changelog entry under `## Unreleased`.",
+    "changed": [
+      "src/items.js",
+      "CHANGELOG.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "tags match in any case, also for new items; fix noted"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..b0ca85e 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Match tags case-insensitively in `findByTag`.\n - Faster tag lookup.\n \n ## 1.4.2 - 2026-09-30\ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..df321c1 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -3,7 +3,10 @@ import { fetchItems, saveItem } from \"./store.js\";\n /** Items that carry `tag`. */\n export async function findByTag(tag) {\n   const items = await fetchItems();\n-  return items.filter((item) => item.tags.includes(tag));\n+  const needle = tag.toLowerCase();\n+  return items.filter((item) =>\n+    item.tags.some((t) => t.toLowerCase() === needle),\n+  );\n }\n \n /** Adds an item with the next free id. */\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": false,
+  "runner_started": "2026-10-28T03:06:06.720Z",
+  "runner_commit": "ea7be1c"
+}

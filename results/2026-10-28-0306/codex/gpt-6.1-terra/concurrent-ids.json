@@ -1,0 +1,57 @@
+{
+  "run": "2026-10-28-0306",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "codex",
+  "model": "gpt-6.1-terra",
+  "effort": "",
+  "task": "concurrent-ids",
+  "task_version": "26d05873",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 19112,
+  "tokens_input": 107307,
+  "tokens_output": 986,
+  "tokens_cache_read": 98816,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 19,
+  "quota_5h_before": 50,
+  "quota_5h_after": 51,
+  "quota_week_before": 38,
+  "quota_week_after": 38,
+  "quota_confidence": "ok",
+  "why": "no duplicate ids, the test catches the race, fix noted",
+  "verdict": "smart",
+  "model_id": "gpt-6.1-terra",
+  "prompt": "Bug report: items added at the same time sometimes get the same id. Fix it and add a regression test to tests/items.test.js that fails on the old code.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed duplicate IDs for concurrent item additions. The regression test failed on the old code and passes with the fix; npm test and npm run lint both pass.",
+    "changed": [
+      "src/items.js",
+      "src/store.js",
+      "tests/items.test.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "no duplicate ids, the test catches the race, fix noted"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/items.js",
+    "src/store.js",
+    "tests/items.test.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex a9a0588..4a9aaa9 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Fix duplicate IDs when items are added concurrently.\n - Faster tag lookup.\n \n ## 1.4.2 - 2026-09-30\ndiff --git a/src/items.js b/src/items.js\nindex b1cae5b..d0a59de 100644\n--- a/src/items.js\n+++ b/src/items.js\n@@ -1,4 +1,4 @@\n-import { fetchItems, saveItem } from \"./store.js\";\n+import { fetchItems, insertItem } from \"./store.js\";\n \n /** Items that carry `tag`. */\n export async function findByTag(tag) {\n@@ -9,7 +9,5 @@ export async function findByTag(tag) {\n /** Adds an item with the next free id. */\n export async function addItem(item) {\n   if (!item.name) throw new Error(\"Item needs a name.\");\n-  const items = await fetchItems();\n-  const id = Math.max(0, ...items.map((i) => i.id)) + 1;\n-  return saveItem({ tags: [], unit: \"\", ...item, id });\n+  return insertItem({ tags: [], unit: \"\", ...item });\n }\ndiff --git a/src/store.js b/src/store.js\nindex e385fba..bc76436 100644\n--- a/src/store.js\n+++ b/src/store.js\n@@ -14,6 +14,14 @@ export async function fetchItems() {\n   return copy;\n }\n \n+/** Inserts an item with the next free id. */\n+export async function insertItem(item) {\n+  const id = Math.max(0, ...shelf.map((i) => i.id)) + 1;\n+  const saved = { ...item, id };\n+  shelf.push(saved);\n+  return saved;\n+}\n+\n /** Adds or replaces an item by id. */\n export async function saveItem(item) {\n   const i = shelf.findIndex((s) => s.id === item.id);\ndiff --git a/tests/items.test.js b/tests/items.test.js\nindex 5fd1ed5..938d164 100644\n--- a/tests/items.test.js\n+++ b/tests/items.test.js\n@@ -13,3 +13,14 @@ test(\"addItem assigns the next id\", async () => {\n   assert.equal(item.id, 5);\n   assert.equal((await fetchItems()).length, 5);\n });\n+\n+test(\"concurrent additions have distinct ids and are both saved\", async () => {\n+  const [first, second] = await Promise.all([\n+    addItem({ name: \"beans\", qty: 1 }),\n+    addItem({ name: \"lentils\", qty: 1 }),\n+  ]);\n+  assert.notEqual(first.id, second.id);\n+  const items = await fetchItems();\n+  assert.ok(items.some((item) => item.id === first.id && item.name === \"beans\"));\n+  assert.ok(items.some((item) => item.id === second.id && item.name === \"lentils\"));\n+});\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T03:06:06.720Z",
+  "runner_commit": "ea7be1c"
+}
