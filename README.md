@@ -14,6 +14,16 @@ This is **not a benchmark**. There is no ranking, no difficulty ladder and no cl
 
 The list lives in [`grid.json`](grid.json). Antigravity names effort inside the model id, and a bare id silently falls back to the user's own setting, so Argon is pinned to `gemini-4-argon-medium`.
 
+## Fixtures
+
+| Fixture | What it is | Size |
+| --- | --- | --- |
+| `fixtures/pantry` | a tiny Node app with planted problems | ~150 lines |
+| `fixtures/larder` | a kitchen stock service: batches, orders, recipes, ledger, migrations, HTTP, i18n, CLI | ~1,700 lines |
+| `fixtures/pymd` | [Python-Markdown](https://github.com/Python-Markdown/markdown) 3.11.2 (BSD-3), unchanged but for `LAB_FIXTURE.md` | ~9k lines of code, 15k of tests |
+
+The daily chores are listed in `grid.json` (`tasks`); the table below lists the Pantry chores. Larder and pymd chores are in `tasks/larder-*.mjs` and `tasks/pymd-*.mjs`.
+
 ## Chores
 
 All chores run one-shot in [`fixtures/pantry`](fixtures/pantry), a small dependency-free Node app with planted problems: a failing test, a lint error, a function to rename, a CSV, an operations doc generated from JSON and a release checklist. Some chores change their own copy first (a planted bug, a contradictory test). Its `AGENTS.md`, `CLAUDE.md` and `GEMINI.md` hold the same house rules.
@@ -70,7 +80,7 @@ The votes, tokens and quota also go to DerpMeter's database (`lab_votes`), where
 
 ## Running it
 
-Node 22 or later, and logged-in `claude`, `codex` and `agy` CLIs.
+Node 22 or later, Python 3.11 or later (for `pymd`), and logged-in `claude`, `codex` and `agy` CLIs.
 
 ```sh
 npm test                      # checks and judge rules

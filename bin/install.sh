@@ -17,7 +17,9 @@ node=$(command -v node)
 claude=$(command -v claude)
 codex=$(command -v codex)
 agy=$(command -v agy)
-bindirs="$(dirname "$claude"):$(dirname "$codex"):$(dirname "$agy")"
+python=$(command -v python3)
+# Python first: the pymd fixture needs Python 3.11+ (macOS /usr/bin has 3.9).
+bindirs="$(dirname "$python"):$(dirname "$claude"):$(dirname "$codex"):$(dirname "$agy")"
 log="$HOME/Library/Logs/derpmeter-lab-daily.log"
 [ -f "$repo/.env" ] || { echo "Missing $repo/.env (see .env.example)."; exit 1; }
 sed -e "s|__REPO__|$repo|" -e "s|__NODE__|$node|" -e "s|__NODEDIR__|$(dirname "$node")|" \

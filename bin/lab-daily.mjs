@@ -124,6 +124,14 @@ for (const agent of AGENT_IDS) {
   }
   plans[agent] = await readPlan(agent, bins);
 }
+// Python chores need Python 3.11+ on PATH (the agents use the same PATH).
+if (runTasks.some((t) => t.fixture === "pymd")) {
+  const py = await exec("python3", ["-c", "import sys; print(sys.version_info >= (3, 11))"], { timeoutSec: 30 });
+  if (py.stdout.trim() !== "True") {
+    log("python3 on PATH is older than 3.11: pymd chores skipped");
+    for (let i = runTasks.length - 1; i >= 0; i--) if (runTasks[i].fixture === "pymd") runTasks.splice(i, 1);
+  }
+}
 // Antigravity lists the model ids it serves to this account.
 if (cells.some((c) => c.agent === "gemini-cli")) {
   const m = await exec(BIN["gemini-cli"], ["models"], { timeoutSec: 60 });
