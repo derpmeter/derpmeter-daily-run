@@ -1,0 +1,55 @@
+{
+  "run": "2026-10-28-0658",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "pymd-slug",
+  "task_version": "c4428213",
+  "cli_version": "1.4.9",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 280831,
+  "tokens_input": 233426,
+  "tokens_output": 5875,
+  "tokens_cache_read": 1222548,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 2558,
+  "quota_5h_before": 13.599,
+  "quota_5h_after": null,
+  "quota_week_before": 7.884,
+  "quota_week_after": null,
+  "quota_confidence": null,
+  "why": "281s over 150s",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Stripped whitespace after removing non-word characters in `toc.slugify` so headings like `# Hello world !` receive the id `hello-world` without a trailing separator, and added a regression test and changelog entry.",
+    "changed": [
+      "markdown/extensions/toc.py",
+      "tests/test_syntax/extensions/test_toc.py",
+      "docs/changelog.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "slugify strips again on every path, with a regression test and changelog"
+  },
+  "changed": [
+    "docs/changelog.md",
+    "markdown/extensions/toc.py",
+    "tests/test_syntax/extensions/test_toc.py"
+  ],
+  "diff": "diff --git a/docs/changelog.md b/docs/changelog.md\nindex dcb6362..ea06499 100644\n--- a/docs/changelog.md\n+++ b/docs/changelog.md\n@@ -12,6 +12,14 @@ and this project adheres to the\n [Python Version Specification](https://packaging.python.org/en/latest/specifications/version-specifiers/).\n See the [Contributing Guide](contributing.md) for details.\n \n+## [Unreleased]\n+\n+### Fixed\n+\n+* Strip whitespace in `toc.slugify` after removing non-word characters so\n+  headings with leading or trailing punctuation do not get leading or trailing\n+  separators in their `id`.\n+\n ## [3.11.2] - 2026-10-19\n \n ### Fixed\ndiff --git a/markdown/extensions/toc.py b/markdown/extensions/toc.py\nindex 3cc6481..0681254 100644\n--- a/markdown/extensions/toc.py\n+++ b/markdown/extensions/toc.py\n@@ -41,7 +41,7 @@ def slugify(value: str, separator: str, unicode: bool = False) -> str:\n         # Replace Extended Latin characters with ASCII, i.e. `žlutý` => `zluty`\n         value = unicodedata.normalize('NFKD', value)\n         value = value.encode('ascii', 'ignore').decode('ascii')\n-    value = re.sub(r'[^\\w\\s-]', '', value).lower()\n+    value = re.sub(r'[^\\w\\s-]', '', value).strip().lower()\n     return re.sub(r'[{}\\s]+'.format(separator), separator, value)\n \n \ndiff --git a/tests/test_syntax/extensions/test_toc.py b/tests/test_syntax/extensions/test_toc.py\nindex 372ba09..d841bb8 100644\n--- a/tests/test_syntax/extensions/test_toc.py\n+++ b/tests/test_syntax/extensions/test_toc.py\n@@ -256,6 +256,29 @@ class TestTOC(TestCase):\n             }\n         )\n \n+    def testTrailingPunctuationInHeading(self):\n+        self.assertMarkdownRenders(\n+            '# Hello world !',\n+            '<h1 id=\"hello-world\">Hello world !</h1>',\n+            expected_attrs={\n+                'toc': (\n+                    '<div class=\"toc\">\\n'\n+                      '<ul>\\n'                                                 # noqa\n+                        '<li><a href=\"#hello-world\">Hello world !</a></li>\\n'  # noqa\n+                      '</ul>\\n'                                                # noqa\n+                    '</div>\\n'\n+                ),\n+                'toc_tokens': [{\n+                    'level': 1,\n+                    'id': 'hello-world',\n+                    'name': 'Hello world !',\n+                    'html': 'Hello world !',\n+                    'data-toc-label': '',\n+                    'children': []\n+                }]\n+            }\n+        )\n+\n     def testRawHtmlInTOC(self):\n         self.assertMarkdownRenders(\n             '# Foo <b>Bar</b> Baz.',\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": false,
+  "runner_started": "2026-10-28T06:58:22.678Z",
+  "runner_commit": "6acaf09"
+}
