@@ -1,0 +1,57 @@
+{
+  "run": "2026-10-28-0509",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "codex",
+  "model": "gpt-6.1-terra",
+  "effort": "",
+  "task": "larder-fefo",
+  "task_version": "9a8c75c7",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 23097,
+  "tokens_input": 121708,
+  "tokens_output": 1289,
+  "tokens_cache_read": 109568,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 19,
+  "quota_5h_before": 63,
+  "quota_5h_after": 64,
+  "quota_week_before": 40,
+  "quota_week_after": 40,
+  "quota_confidence": "ok",
+  "why": "FEFO by the data rules, with a regression test",
+  "verdict": "smart",
+  "model_id": "gpt-6.1-terra",
+  "prompt": "Bug report: cooking bechamel today took the new milk (lot HD-1026) although lot HD-1022 expires tomorrow. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed stock consumption to use the earliest-expiring lot first. Added regression tests; npm test and npm run lint pass.",
+    "changed": [
+      "src/domain/batches.js",
+      "tests/http.test.js",
+      "tests/batches.test.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "FEFO by the data rules, with a regression test"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/domain/batches.js",
+    "tests/batches.test.js",
+    "tests/http.test.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex bb2dd6d..3d25d29 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Consume stock in expiry order, using undated batches last.\n - Show stock on hand in `GET /items`.\n \n ## 2.3.0 - 2026-10-20\ndiff --git a/src/domain/batches.js b/src/domain/batches.js\nindex ee14fde..cd0f7e0 100644\n--- a/src/domain/batches.js\n+++ b/src/domain/batches.js\n@@ -20,7 +20,12 @@ export function getBatch(store, id) {\n \n // The order in which an item's batches are used up.\n function consumptionOrder(batches) {\n-  return [...batches].sort((a, b) => b.receivedOn.localeCompare(a.receivedOn));\n+  return [...batches].sort((a, b) => {\n+    if (a.expires === null && b.expires !== null) return 1;\n+    if (a.expires !== null && b.expires === null) return -1;\n+    return (a.expires ?? \"\").localeCompare(b.expires ?? \"\") ||\n+      a.receivedOn.localeCompare(b.receivedOn) || a.id - b.id;\n+  });\n }\n \n /**\ndiff --git a/tests/batches.test.js b/tests/batches.test.js\nnew file mode 100644\nindex 0000000..2d87d8e\n--- /dev/null\n+++ b/tests/batches.test.js\n@@ -0,0 +1,17 @@\n+import test from \"node:test\";\n+import assert from \"node:assert/strict\";\n+import { consume } from \"../src/domain/batches.js\";\n+import { fresh } from \"./helpers.js\";\n+\n+test(\"consumption orders by expiry, receipt date, then id, with undated batches last\", () => {\n+  const store = fresh();\n+  store.data.batches = [\n+    { id: 10, itemId: 2, qty: 1, receivedOn: \"2026-01-01\", expires: null },\n+    { id: 11, itemId: 2, qty: 1, receivedOn: \"2026-10-01\", expires: \"2026-11-01\" },\n+    { id: 12, itemId: 2, qty: 1, receivedOn: \"2026-10-02\", expires: \"2026-10-30\" },\n+    { id: 13, itemId: 2, qty: 1, receivedOn: \"2026-10-01\", expires: \"2026-10-30\" },\n+    { id: 14, itemId: 2, qty: 1, receivedOn: \"2026-10-01\", expires: \"2026-10-30\" },\n+  ];\n+  const used = consume(store, 2, 5, { at: \"2026-10-28T10:00:00Z\" });\n+  assert.deepEqual(used.map((entry) => entry.batchId), [13, 14, 12, 11, 10]);\n+});\ndiff --git a/tests/http.test.js b/tests/http.test.js\nindex 42080b8..cd12ade 100644\n--- a/tests/http.test.js\n+++ b/tests/http.test.js\n@@ -27,6 +27,16 @@ test(\"cooking uses every ingredient\", async () => {\n   assert.equal(store.data.batches.filter((b) => b.itemId === 6).reduce((s, b) => s + b.qty, 0), 6.5);\n });\n \n+test(\"cooking bechamel uses the milk that expires first\", async () => {\n+  const { handle, store } = app();\n+  const res = await handle({ method: \"POST\", path: \"/recipes/2/cook\", body: { portions: 10 } });\n+  assert.equal(res.status, 200);\n+  assert.deepEqual(res.body.used.find((entry) => entry.itemId === 2).batches, [{ batchId: 4, qty: 2 }]);\n+  assert.equal(store.data.batches.find((b) => b.id === 3).qty, 8);\n+  assert.equal(store.data.batches.find((b) => b.id === 4).qty, 0);\n+  assert.ok(store.data.movements.some((m) => m.type === \"consume\" && m.batchId === 4 && m.qty === 2 && m.ref === \"recipe:2\"));\n+});\n+\n test(\"cooking more than there is changes nothing\", async () => {\n   const { handle, store } = app();\n   const before = JSON.stringify(store.data.batches);\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T05:09:42.047Z",
+  "runner_commit": "ce1f9c1"
+}

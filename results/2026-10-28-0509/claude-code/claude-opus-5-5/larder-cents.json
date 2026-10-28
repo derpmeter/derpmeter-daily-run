@@ -1,0 +1,56 @@
+{
+  "run": "2026-10-28-0509",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "larder-cents",
+  "task_version": "f91a2059",
+  "cli_version": "2.1.312",
+  "plan": "max",
+  "score": 50,
+  "reason": "poor_output",
+  "skipped": null,
+  "duration_ms": 41958,
+  "tokens_input": 184447,
+  "tokens_output": 2661,
+  "tokens_cache_read": 155321,
+  "tokens_cache_write": 29112,
+  "tokens_reasoning": 432,
+  "quota_5h_before": 14,
+  "quota_5h_after": 14,
+  "quota_week_before": 81,
+  "quota_week_after": 82,
+  "quota_confidence": "ok",
+  "why": "partly done: missed qty",
+  "verdict": "meh",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Bug report: the stock value report's total is a cent off from the sum of its own lines, and accounting says the total is wrong. Fix it and add a test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed: the stock value report now rounds each line to the cent and adds up those rounded lines for the total, which is what docs/DATA.md requires. Before, it added the unrounded amounts and rounded only at the end. The new test fails on the old code (even with the seed data) and passes now; `npm test` and `npm run lint` both pass.",
+    "changed": [
+      "src/domain/reports.js",
+      "tests/reports.test.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": false,
+    "partial": true,
+    "why": "missed qty"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/domain/reports.js",
+    "tests/reports.test.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex bb2dd6d..b534639 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Show stock on hand in `GET /items`.\n+- Fix: the stock value report total is now the sum of its rounded lines (it could be a cent off).\n \n ## 2.3.0 - 2026-10-20\n \ndiff --git a/src/domain/reports.js b/src/domain/reports.js\nindex ccfceca..78c9739 100644\n--- a/src/domain/reports.js\n+++ b/src/domain/reports.js\n@@ -1,5 +1,6 @@\n // Reports over the whole store.\n import { listItems } from \"./items.js\";\n+import { lineCents } from \"../money.js\";\n \n /**\n  * Stock value: every batch at its item's price. Returns the total and one\n@@ -10,13 +11,10 @@ export function stockValue(store) {\n     const qty = store.data.batches\n       .filter((b) => b.itemId === item.id)\n       .reduce((s, b) => s + b.qty, 0);\n-    return { itemId: item.id, name: item.name, qty, valueCents: qty * item.priceCents };\n+    return { itemId: item.id, name: item.name, qty, valueCents: lineCents(qty, item.priceCents) };\n   });\n-  const total = lines.reduce((s, l) => s + l.valueCents, 0);\n-  return {\n-    totalCents: Math.round(total),\n-    lines: lines.map((l) => ({ ...l, valueCents: Math.round(l.valueCents) })),\n-  };\n+  // Lines are rounded on their own; the total is the sum of rounded lines.\n+  return { totalCents: lines.reduce((s, l) => s + l.valueCents, 0), lines };\n }\n \n /** Waste per item between two days (inclusive), from the ledger. */\ndiff --git a/tests/reports.test.js b/tests/reports.test.js\nnew file mode 100644\nindex 0000000..5f75550\n--- /dev/null\n+++ b/tests/reports.test.js\n@@ -0,0 +1,25 @@\n+import test from \"node:test\";\n+import assert from \"node:assert/strict\";\n+import { memoryStore } from \"../src/db/store.js\";\n+import { stockValue } from \"../src/domain/reports.js\";\n+import { seed } from \"./helpers.js\";\n+\n+test(\"stock value total is the sum of its rounded lines\", () => {\n+  const data = seed();\n+  data.items = [\n+    { ...data.items[0], id: 1, priceCents: 1 },\n+    { ...data.items[0], id: 2, sku: \"X-2\", priceCents: 1 },\n+  ];\n+  data.batches = [\n+    { ...data.batches[0], id: 1, itemId: 1, qty: 0.5 },\n+    { ...data.batches[0], id: 2, itemId: 2, qty: 0.5 },\n+  ];\n+  const report = stockValue(memoryStore(data));\n+  assert.deepEqual(report.lines.map((l) => l.valueCents), [1, 1]);\n+  assert.equal(report.totalCents, 2);\n+});\n+\n+test(\"stock value total matches its lines for the seed data\", () => {\n+  const report = stockValue(memoryStore(seed()));\n+  assert.equal(report.totalCents, report.lines.reduce((s, l) => s + l.valueCents, 0));\n+});\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": true,
+  "runner_started": "2026-10-28T05:09:42.047Z",
+  "runner_commit": "ce1f9c1"
+}

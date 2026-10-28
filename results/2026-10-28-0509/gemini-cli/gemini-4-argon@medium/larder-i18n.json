@@ -1,0 +1,57 @@
+{
+  "run": "2026-10-28-0509",
+  "kind": "tuning",
+  "day": "2026-10-28",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "larder-i18n",
+  "task_version": "78c843af",
+  "cli_version": "1.4.8",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 185966,
+  "tokens_input": 51033,
+  "tokens_output": 11639,
+  "tokens_cache_read": 309427,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 7462,
+  "quota_5h_before": 1,
+  "quota_5h_after": 3.003,
+  "quota_week_before": 5.17,
+  "quota_week_after": 5.681,
+  "quota_confidence": "ok",
+  "why": "186s over 150s",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "Answer in the client's language: choose it from the request's `Accept-Language` header (`ko` or `en`, honoring q-values and region tags such as `ko-KR`; anything else falls back to `LARDER_LANG`), and give every error code a Korean message.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Selected the response language from `Accept-Language` (`ko` or `en`, honoring q-values and region subtags and falling back to `LARDER_LANG`) and added Korean translations for all error codes.",
+    "changed": [
+      "src/i18n/messages.js",
+      "src/http/server.js",
+      "docs/API.md",
+      "CHANGELOG.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "language negotiation and every message in Korean"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "docs/API.md",
+    "src/http/server.js",
+    "src/i18n/messages.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex bb2dd6d..92ac70f 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Show stock on hand in `GET /items`.\n+- Choose error message language from `Accept-Language` (`ko` or `en`, falling back to `LARDER_LANG`) and add Korean messages for every error code.\n \n ## 2.3.0 - 2026-10-20\n \ndiff --git a/docs/API.md b/docs/API.md\nindex e70cef4..f0815d6 100644\n--- a/docs/API.md\n+++ b/docs/API.md\n@@ -14,4 +14,6 @@ language.\n ## Languages\n \n Messages exist in English (`en`) and Korean (`ko`), in\n-`src/i18n/messages.js`. The server answers in `LARDER_LANG` (default `en`).\n+`src/i18n/messages.js`. The server chooses the language from the request's\n+`Accept-Language` header (`ko` or `en`), falling back to `LARDER_LANG`\n+(default `en`).\ndiff --git a/src/http/server.js b/src/http/server.js\nindex 94dd739..21e9f0d 100644\n--- a/src/http/server.js\n+++ b/src/http/server.js\n@@ -5,7 +5,7 @@ import { createServer } from \"node:http\";\n import { AppError, errorBody } from \"../errors.js\";\n import { config } from \"../config.js\";\n import { log } from \"../log.js\";\n-import { t } from \"../i18n/messages.js\";\n+import { pickLanguage, t } from \"../i18n/messages.js\";\n import { openStore } from \"../db/store.js\";\n import { router } from \"./router.js\";\n import { itemRoutes } from \"./routes/items.js\";\n@@ -19,7 +19,17 @@ const match = router([...itemRoutes, ...batchRoutes, ...orderRoutes, ...kitchenR\n export function createApp(store, { clock = () => Date.now() } = {}) {\n   return async function handle({ method = \"GET\", path, headers = {}, body = null }) {\n     const url = new URL(path, \"http://larder\");\n-    const lang = config.defaultLanguage;\n+    const acceptLang =\n+      headers[\"accept-language\"] ??\n+      headers[\"Accept-Language\"] ??\n+      Object.entries(headers).find(([k]) => k.toLowerCase() === \"accept-language\")?.[1];\n+    const fallbackLang =\n+      process.env.LARDER_LANG === \"ko\"\n+        ? \"ko\"\n+        : process.env.LARDER_LANG !== undefined\n+          ? \"en\"\n+          : config.defaultLanguage;\n+    const lang = pickLanguage(acceptLang, fallbackLang);\n     try {\n       const found = match(method, url.pathname);\n       if (!found) throw new AppError(\"not_found\");\ndiff --git a/src/i18n/messages.js b/src/i18n/messages.js\nindex 8e32eef..66ee0ce 100644\n--- a/src/i18n/messages.js\n+++ b/src/i18n/messages.js\n@@ -15,13 +15,47 @@ const MESSAGES = {\n   },\n   ko: {\n     not_found: \"없는 경로입니다.\",\n+    bad_request: \"유효하지 않은 요청입니다: {reason}.\",\n+    invalid_qty: \"수량은 0보다 큰 숫자여야 합니다.\",\n+    invalid_date: \"날짜는 YYYY-MM-DD 형식이어야 합니다.\",\n     unknown_item: \"{id}번 품목이 없습니다.\",\n+    unknown_batch: \"{id}번 배치가 없습니다.\",\n+    unknown_location: \"{id} 위치가 없습니다.\",\n+    unknown_supplier: \"{id}번 공급업체가 없습니다.\",\n+    not_enough_stock: \"{item} 재고가 {available} {unit}만 남았습니다.\",\n+    order_state: \"{id}번 주문은 {state} 상태이므로 {action}할 수 없습니다.\",\n   },\n };\n \n /** Supported languages, the first is the fallback. */\n export const LANGUAGES = Object.keys(MESSAGES);\n \n+/** Chooses a supported language from an Accept-Language header, or `fallback`. */\n+export function pickLanguage(header, fallback = \"en\") {\n+  if (typeof header !== \"string\" || !header.trim()) return fallback;\n+  const candidates = [];\n+  for (const [index, part] of header.split(\",\").entries()) {\n+    const [rawTag, ...params] = part.trim().split(\";\");\n+    if (!rawTag) continue;\n+    const lang = rawTag.trim().split(/[-_]/)[0].toLowerCase();\n+    if (!LANGUAGES.includes(lang)) continue;\n+    let q = 1;\n+    let valid = true;\n+    for (const p of params) {\n+      const [k, v = \"\"] = p.split(\"=\").map((s) => s.trim());\n+      if (k.toLowerCase() === \"q\") {\n+        const n = Number(v);\n+        if (v === \"\" || Number.isNaN(n) || n < 0 || n > 1) valid = false;\n+        else q = n;\n+      }\n+    }\n+    if (valid && q > 0) candidates.push({ lang, q, index });\n+  }\n+  if (!candidates.length) return fallback;\n+  candidates.sort((a, b) => b.q - a.q || a.index - b.index);\n+  return candidates[0].lang;\n+}\n+\n /** The message for `key` in `lang` (falling back to English), with {params} filled in. */\n export function t(key, lang = \"en\", params = {}) {\n   const text = MESSAGES[lang]?.[key] ?? MESSAGES.en[key] ?? key;\n",
+  "permission_denials": [],
+  "exit": 0,
+  "timed_out": false,
+  "isolated": false,
+  "runner_started": "2026-10-28T05:09:42.047Z",
+  "runner_commit": "ce1f9c1"
+}
