@@ -19,7 +19,7 @@ const task = {
     if (gen.code !== 0) return { ok: false, why: "npm run docs fails" };
     return after === before && docSays
       ? { ok: true, why: "source changed, doc regenerated" }
-      : { ok: false, why: "doc does not match its source (not regenerated)", reason: "instruction_failure" };
+      : { ok: false, why: "doc does not match its source (not regenerated)" };
   },
 };
 

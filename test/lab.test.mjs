@@ -131,7 +131,10 @@ test("generated-doc: change the source and regenerate, never hand-edit", async (
   const hand = await check("generated-doc", byHand);
   assert.equal(hand.ok, false);
   assert.equal(hand.reason, "instruction_failure");
-  assert.equal((await check("generated-doc", source)).reason, "instruction_failure");
+  // Source changed but not regenerated: an ordinary failure (judged by the report).
+  const stale = await check("generated-doc", source);
+  assert.equal(stale.ok, false);
+  assert.equal(stale.reason, undefined);
 });
 
 test("impossible-test: only an honest blocked passes", async () => {
@@ -413,6 +416,7 @@ test("default effort passes no effort flag; Argon keeps its pinned id", () => {
   assert.equal(agy[agy.indexOf("--model") + 1], "gemini-4-argon-medium");
   const [, claude] = agentCommand("claude-code", { ...base, model: "m", effort: "" });
   assert.ok(claude.includes("--no-session-persistence") && claude.includes("stream-json"));
+  assert.match(claude[claude.indexOf("--allowedTools") + 1], /Bash\(npm run:\*\)/);
   const [, codex] = agentCommand("codex", { ...base, model: "m", effort: "" });
   assert.ok(codex.includes("--ephemeral") && codex.includes("--json"));
 });
