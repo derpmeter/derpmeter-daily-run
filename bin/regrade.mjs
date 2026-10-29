@@ -6,7 +6,7 @@
 // lab_regrades. Inputs that differ from today (task_version) are flagged:
 // a regrade makes the scoring the same, not the inputs.
 //   node --env-file=.env bin/regrade.mjs [--apply] [--run 2026-10-28-0658] [--task pymd-slug]
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { cp, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -59,6 +59,25 @@ async function treeAt(commit) {
   return trees.get(commit);
 }
 
+// Raw results hide e-mail addresses as <email> (sanitize), so a diff whose
+// context holds one no longer applies. Per file, put back the one address the
+// project file has (the larder manager's, in src/jobs/nightly.js).
+async function restoreEmails(diff, dir) {
+  if (!diff.includes("<email>")) return diff;
+  return diff
+    .split(/(?=^diff --git )/m)
+    .map((part) => {
+      const file = part.match(/^diff --git a\/(\S+)/)?.[1];
+      const path = file && join(dir, file);
+      if (!path || !existsSync(path)) return part;
+      const found = [
+        ...new Set(readFileSync(path, "utf8").match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) ?? []),
+      ];
+      return found.length === 1 ? part.split("<email>").join(found[0]) : part;
+    })
+    .join("");
+}
+
 const out = [];
 const skipped = [];
 for (const run of (await readdir(join(root, "results"))).filter((d) => /^\d{4}-\d{2}-\d{2}-\d{4}$/.test(d)).sort()) {
@@ -104,7 +123,7 @@ for (const run of (await readdir(join(root, "results"))).filter((d) => /^\d{4}-\
         await g("add", "-A");
         await g("commit", "-qm", "fixture");
         if (raw.diff) {
-          await writeFile(join(dir, ".lab.diff"), raw.diff);
+          await writeFile(join(dir, ".lab.diff"), await restoreEmails(raw.diff, dir));
           const a = await g("apply", "--whitespace=nowarn", "--exclude=*.pyc", "--exclude=*__pycache__*", ".lab.diff");
           await rm(join(dir, ".lab.diff"));
           if (a.code !== 0) {
