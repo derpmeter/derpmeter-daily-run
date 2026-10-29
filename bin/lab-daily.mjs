@@ -23,6 +23,7 @@ import {
   capSec,
   changedFiles,
   classifyFailure,
+  cliErrors,
   cliVersion,
   GRADER_LIBS,
   graderVersion,
@@ -211,9 +212,11 @@ async function runOne(cell, task) {
   const diff = (await git("diff", "--no-color")).stdout + (await git("diff", "--no-color", "--cached")).stdout;
   await git("add", "-A");
   const fullDiff = (await git("diff", "--no-color", "--cached", "HEAD")).stdout;
+  // Kept with the raw result so a later grader can classify it again.
+  const errors = cliErrors(cell.agent, res.stdout, agentLog, promptFor(task));
   const skipped = wrongModel(cell.agent, agentLog, modelId(cell))
     ? "crash"
-    : classifyFailure({ code: res.code, output: `${res.stdout}\n${agentLog}`, report, timedOut: res.timedOut });
+    : classifyFailure({ code: res.code, output: errors, report, timedOut: res.timedOut });
   const check = skipped ? { ok: false, why: "" } : await task.check(checkContext(dir, report));
   const vote = judge({ skipped, timedOut: res.timedOut, report, check, changed, task, durationMs: res.ms });
   const quotaOk = before && after && !othersWorked(cpuBefore, cpuAfter);
@@ -258,6 +261,7 @@ async function runOne(cell, task) {
       changed,
       diff: (fullDiff || diff).slice(0, 50_000),
       permission_denials: permissionDenials(cell.agent, res.stdout),
+      cli_errors: errors,
       exit: res.code,
       timed_out: res.timedOut,
       isolated: isolated[cell.agent],
