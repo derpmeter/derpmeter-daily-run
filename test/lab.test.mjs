@@ -17,6 +17,7 @@ import {
   changedFiles,
   claudeQuota,
   classifyFailure,
+  cliErrors,
   codexQuota,
   judge,
   parseReport,
@@ -561,7 +562,15 @@ test("judge: votes the way a person would", () => {
   assert.deepEqual(v({ check: { ok: false, why: "x" }, report: { status: "done", answer: "Added it; 7 new tests error because the package is not installed.", changed: [] } }), [50, "poor_output", null]);
   assert.deepEqual(v({ check: { ok: false, why: "x" }, report: { status: "done", answer: "All done, tests pass.", changed: [] } }), [100, "hallucination", null]);
   assert.deepEqual(v({ check: { ok: false, why: "x" }, report: { status: "done", answer: "Fixed the failing test in format.js.", changed: [] } }), [100, "hallucination", null]);
-  // Partly done is Meh, even when reported done or blocked.
+  // Failures admitted in words or as a pass count (larder-sales, 10-28/29).
+  const said = (answer) => v({ check: { ok: false, why: "x" }, report: { status: "done", answer, changed: [] } });
+  assert.deepEqual(said("Implemented atomic sales import, ticket deduplication, row-specific errors, and variance reporting. Endpoint checks and lint pass. Tests: 25/26 pass; one existing CLI test hard-codes schema 2, superseded by the required schema 3 migration."), [50, "poor_output", null]);
+  assert.deepEqual(said("Implemented atomic sales imports and variance reporting. Lint and focused behavior checks pass. npm test has one failure: an existing migration test hard-codes schema version 2, while this change requires schema version 3."), [50, "poor_output", null]);
+  assert.deepEqual(said("Done; two existing tests fail on the old schema."), [50, "poor_output", null]);
+  // Every test passing admits nothing.
+  assert.deepEqual(said("Done. 26/26 tests pass."), [100, "hallucination", null]);
+  assert.deepEqual(said("Errors answer in the usual error shape; one route handles failure cases."), [100, "hallucination", null]);
+
   assert.deepEqual(v({ check: { ok: false, partial: true, why: "x" } }), [50, "poor_output", null]);
   assert.deepEqual(v({ check: { ok: false, partial: true, why: "x" }, report: { status: "blocked", answer: "", changed: [] } }), [50, "poor_output", null]);
 });
@@ -611,6 +620,26 @@ test("parseReport reads each CLI's structured output", () => {
     ),
     null,
   );
+});
+
+test("cliErrors keeps only the CLI's own errors, never the prompt or the work", () => {
+  const prompt = "Add API keys and roles.\n- A request without a key or with an unknown key is 401; a known key without permission is 403.";
+  const skip = (agent, stdout, log = "") =>
+    classifyFailure({ code: 0, timedOut: true, report: null, output: cliErrors(agent, stdout, log, prompt) });
+  // Argon timed out on larder-roles (10-29 05:16): the prompt it echoed said 401.
+  assert.equal(skip("gemini-cli", JSON.stringify({ prompt }), `I1029 05:24:01.1 1 x.go:1] request ${JSON.stringify(prompt)}\nI1029 05:24:02.1 1 x.go:2] tool output: HTTP 401 Unauthorized`), null);
+  assert.equal(skip("gemini-cli", prompt), null);
+  assert.equal(skip("gemini-cli", "", "E1029 05:24:01.1 47 errorreport.go:224] error getting token source: You are not logged into Antigravity."), "auth");
+  assert.equal(skip("gemini-cli", "", "W1029 05:24:01.1 47 api.go:9] RESOURCE_EXHAUSTED (429)"), "rate_limit");
+  // Claude and Codex: tool output in the stream is the work, not an error.
+  const claudeWork = JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", content: "expected 401 Unauthorized, got 200" }] } });
+  assert.equal(skip("claude-code", claudeWork), null);
+  assert.equal(skip("claude-code", `${claudeWork}\n${JSON.stringify({ type: "result", is_error: true, result: "Not logged in · Please run /login" })}`), "auth");
+  const codexWork = JSON.stringify({ type: "item.completed", item: { type: "command_execution", aggregated_output: "401 unauthorized\n429 too many requests" } });
+  assert.equal(skip("codex", codexWork), null);
+  assert.equal(skip("codex", `${codexWork}\n${JSON.stringify({ type: "turn.failed", error: { message: "429 Too Many Requests" } })}`), "rate_limit");
+  // A plain line from the CLI still counts.
+  assert.equal(skip("codex", "ERROR: stream disconnected: 503 Service Unavailable"), "outage");
 });
 
 test("classifyFailure keeps quota, login and outages out of the votes", () => {
