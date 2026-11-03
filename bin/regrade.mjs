@@ -133,7 +133,10 @@ for (const run of (await readdir(join(root, "results"))).filter((d) => /^\d{4}-\
         }
         const changed = changedFiles((await g("status", "--porcelain", "--untracked-files=all")).stdout);
         const check = await task.check(checkContext(dir, raw.report ?? null));
-        vote = judge({ skipped: null, timedOut, report: raw.report ?? null, check, changed, task, durationMs: raw.duration_ms });
+        // The CLI answered past the cap (runs since 11-03 keep that).
+        const partial =
+          timedOut && (raw.tokens_input != null || Boolean(raw.report) || Boolean(raw.finished_reason));
+        vote = judge({ skipped: null, timedOut, partial, report: raw.report ?? null, check, changed, task, durationMs: raw.duration_ms });
       } finally {
         await rm(dir, { recursive: true, force: true });
       }

@@ -31,6 +31,7 @@ import {
   modelId,
   parseReport,
   parseUsage,
+  agyOutput,
   permissionDenials,
   claudeQuota,
   promptFor,
@@ -218,7 +219,10 @@ async function runOne(cell, task) {
     ? "crash"
     : classifyFailure({ code: res.code, output: errors, report, timedOut: res.timedOut });
   const check = skipped ? { ok: false, why: "" } : await task.check(checkContext(dir, report));
-  const vote = judge({ skipped, timedOut: res.timedOut, report, check, changed, task, durationMs: res.ms });
+  // What the CLI said even when it hit the cap (Antigravity: partial output).
+  const answered = cell.agent === "gemini-cli" ? agyOutput(res.stdout) : null;
+  const partial = res.timedOut && (Boolean(usage) || Boolean(report) || Boolean(answered));
+  const vote = judge({ skipped, timedOut: res.timedOut, partial, report, check, changed, task, durationMs: res.ms });
   const quotaOk = before && after && !othersWorked(cpuBefore, cpuAfter);
   const row = {
     run,
@@ -264,6 +268,9 @@ async function runOne(cell, task) {
       cli_errors: errors,
       exit: res.code,
       timed_out: res.timedOut,
+      // Kept when the CLI answered past the cap: how it ended and what it said.
+      finished_reason: answered?.finishedReason ?? null,
+      partial_response: partial ? String(answered?.response ?? report?.answer ?? "").slice(0, 4000) : null,
       isolated: isolated[cell.agent],
       runner_started: started.toISOString(),
       runner_commit: runnerCommit,

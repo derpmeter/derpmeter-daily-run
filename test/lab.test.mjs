@@ -22,6 +22,7 @@ import {
   judge,
   parseReport,
   parseUsage,
+  agyOutput,
   resultPath,
   sanitize,
   taskVersion,
@@ -502,6 +503,11 @@ test("judge: votes the way a person would", () => {
   assert.deepEqual(v({}), [0, null, null]);
   assert.deepEqual(v({ skipped: "rate_limit" }), [null, null, "rate_limit"]);
   assert.deepEqual(v({ timedOut: true }), [100, "repeated_mistake", null]);
+  // Timed out, but the CLI still answered (tokens, partial output): kept and
+  // marked as a timeout; the vote is the same.
+  assert.deepEqual(v({ timedOut: true, partial: true }), [100, "repeated_mistake", null]);
+  assert.match(judge(obs({ timedOut: true, partial: true })).why, /timed out at the hard cap/);
+  assert.equal(judge(obs({ timedOut: true })).why, "stuck past the hard cap");
   assert.deepEqual(v({ changed: ["src/a.js", "tests/a.test.js"] }), [
     100,
     "instruction_failure",
@@ -745,6 +751,29 @@ test("tokens from each CLI's output", () => {
     { input: 8, output: 3, cacheRead: 0, cacheWrite: null, reasoning: 1 },
   );
   assert.equal(parseUsage("codex", ""), null);
+});
+
+test("agy at its print timeout: the JSON it still prints is read past the stderr line", () => {
+  const json = JSON.stringify({
+    status: "SUCCESS",
+    response: "",
+    usage: { input_tokens: 15341, output_tokens: 1269, thinking_tokens: 0, cache_read_tokens: 20378 },
+    finished_reason: "print_timeout",
+  });
+  // stdout and stderr arrive in one stream, in either order.
+  for (const out of [
+    `${json}\n[agy] print timeout after 30s with turn in progress; returning partial output\n`,
+    `[agy] print timeout after 30s with turn in progress; returning partial output\n${json}\n`,
+  ]) {
+    assert.deepEqual(parseUsage("gemini-cli", out), { input: 15341, output: 1269, cacheRead: 20378, cacheWrite: null, reasoning: 0 });
+    assert.deepEqual(agyOutput(out), { finishedReason: "print_timeout", response: "" });
+  }
+  const r = { status: "done", answer: "ok", changed: [] };
+  assert.deepEqual(
+    parseReport("gemini-cli", `${JSON.stringify({ response: JSON.stringify(r), structured_output: r })}\nW1103 warning line`),
+    r,
+  );
+  assert.equal(agyOutput("no json at all"), null);
 });
 
 test("quota readings as percent used, per CLI", () => {
