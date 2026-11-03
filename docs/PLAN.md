@@ -177,3 +177,11 @@ sh bin/install.sh                           # launchd, 매일 03:30 (로컬 시�
 - 하루 9표라 일별 값은 거칠다. 화면은 7일 묶음만 비교한다.
 - 잡일을 바꾸면 `task_version`이 바뀌어 그 잡일의 지난주 비교가 한 주 동안 비게 된다.
 - 03:30 커밋이 쌓인다. 리포를 공개할 때 DerpMeter 공개 리포의 커밋 시각 규칙(평일 08:00–19:00 KST)을 어떻게 적용할지 정해야 한다.
+
+## 2026-11-03 시간 초과 응답 기록 (사용자 지시)
+
+"시간 초과해도 아예 응답을 못 받은게 아니면 응답을 받아서 기록하고 시간 초과라고 표기하자."
+
+- 원인: runner가 CLI의 stdout과 stderr를 한 스트림으로 받는다. Antigravity는 `--print-timeout`에 걸리면 stderr에 `[agy] print timeout … returning partial output` 한 줄을 쓰고, stdout에는 usage와 `finished_reason: "print_timeout"`이 든 JSON을 그대로 낸다. 이 한 줄 때문에 JSON 파싱이 실패해 토큰과 응답이 버려지고 있었다(10-28 이후 Argon 시간 초과 23건 전부 토큰 없음).
+- 수정: JSON 객체를 줄 단위로 찾아 읽는다(`agyOutput`, `parseUsage`, `parseReport`). 시간 초과여도 CLI가 응답했으면(토큰, 보고, 부분 응답) 기록하고 원본 결과에 `finished_reason`, `partial_response`를 남긴다. 판정은 그대로 Dumb repeated_mistake이고, why는 "timed out at the hard cap (partial output kept)"이다. 아무 응답이 없으면 지금처럼 "stuck past the hard cap"이다.
+- 판정 규칙은 바뀌지 않았지만 lib/lab.mjs가 바뀌어 grader 해시가 바뀌므로 전체 기록을 재채점했다. 과거 시간 초과는 원본에 stdout이 없어서 토큰을 되살릴 수 없다. 다음 시행부터 기록된다.
