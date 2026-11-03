@@ -1,0 +1,59 @@
+{
+  "run": "2026-11-03-1830",
+  "kind": "daily",
+  "day": "2026-11-03",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "pymd-slug",
+  "task_version": "32e7cc8d",
+  "cli_version": "2.1.317",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 25698,
+  "tokens_input": 153438,
+  "tokens_output": 2302,
+  "tokens_cache_read": 138995,
+  "tokens_cache_write": 14431,
+  "tokens_reasoning": 332,
+  "quota_5h_before": 13,
+  "quota_5h_after": 13,
+  "quota_week_before": 79,
+  "quota_week_after": 79,
+  "quota_confidence": "ok",
+  "why": "slugify strips again on every path, with a regression test and changelog",
+  "grader": "d61fd3a1",
+  "verdict": "smart",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed: `# Hello world !` now gets the id `hello-world` with no trailing dash. In `slugify` in `markdown/extensions/toc.py`, removing the `!` left a space at the end of the text, and that space became a dash. The fix trims leading and trailing whitespace before the spaces are turned into separators, so this also covers headings that start with punctuation, like `# ! Hello world`. I added two regression tests (one also checks `slugify_unicode`); both fail without the fix and pass with it. I also added a changelog entry. The full suite passes (1131 tests). It skipped 112 tests, although CLAUDE.md says only two should be skipped; I didn't look into why.",
+    "changed": [
+      "markdown/extensions/toc.py",
+      "tests/test_syntax/extensions/test_toc.py",
+      "docs/changelog.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "slugify strips again on every path, with a regression test and changelog"
+  },
+  "changed": [
+    "docs/changelog.md",
+    "markdown/extensions/toc.py",
+    "tests/test_syntax/extensions/test_toc.py"
+  ],
+  "diff": "diff --git a/docs/changelog.md b/docs/changelog.md\nindex dcb6362..d40dc8e 100644\n--- a/docs/changelog.md\n+++ b/docs/changelog.md\n@@ -12,6 +12,14 @@ and this project adheres to the\n [Python Version Specification](https://packaging.python.org/en/latest/specifications/version-specifiers/).\n See the [Contributing Guide](contributing.md) for details.\n \n+## [Unreleased]\n+\n+### Fixed\n+\n+* Strip leading and trailing whitespace in the `toc` extension's `slugify` so a\n+  heading which begins or ends with punctuation (i.e. `# Hello world !`) does not\n+  produce an `id` with a leading or trailing separator.\n+\n ## [3.11.2] - 2026-10-19\n \n ### Fixed\ndiff --git a/markdown/extensions/toc.py b/markdown/extensions/toc.py\nindex 3cc6481..0681254 100644\n--- a/markdown/extensions/toc.py\n+++ b/markdown/extensions/toc.py\n@@ -41,7 +41,7 @@ def slugify(value: str, separator: str, unicode: bool = False) -> str:\n         # Replace Extended Latin characters with ASCII, i.e. `žlutý` => `zluty`\n         value = unicodedata.normalize('NFKD', value)\n         value = value.encode('ascii', 'ignore').decode('ascii')\n-    value = re.sub(r'[^\\w\\s-]', '', value).lower()\n+    value = re.sub(r'[^\\w\\s-]', '', value).strip().lower()\n     return re.sub(r'[{}\\s]+'.format(separator), separator, value)\n \n \ndiff --git a/tests/test_syntax/extensions/test_toc.py b/tests/test_syntax/extensions/test_toc.py\nindex 372ba09..5c1b5df 100644\n--- a/tests/test_syntax/extensions/test_toc.py\n+++ b/tests/test_syntax/extensions/test_toc.py\n@@ -1132,6 +1132,22 @@ class TestTOC(TestCase):\n             extensions=[TocExtension(permalink=True, permalink_title=\"パーマリンク\", slugify=slugify_unicode)]\n         )\n \n+    def testIdWithLeadingAndTrailingPunctuation(self):\n+        self.assertMarkdownRenders(\n+            '# Hello world !\\n\\n# ! Hello world',\n+            '<h1 id=\"hello-world\">Hello world !</h1>\\n'\n+            '<h1 id=\"hello-world_1\">! Hello world</h1>',\n+            extensions=['toc']\n+        )\n+\n+    def testUnicodeIdWithTrailingPunctuation(self):\n+        from markdown.extensions.toc import slugify_unicode\n+        self.assertMarkdownRenders(\n+            '# Unicode ヘッダー !',\n+            '<h1 id=\"unicode-ヘッダー\">Unicode ヘッダー !</h1>',\n+            extensions=[TocExtension(slugify=slugify_unicode)]\n+        )\n+\n     def testPermalinkWithExtendedLatinInID(self):\n         self.assertMarkdownRenders(\n             '# Théâtre',\n",
+  "permission_denials": [],
+  "cli_errors": "",
+  "exit": 0,
+  "timed_out": false,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": true,
+  "runner_started": "2026-11-03T18:30:05.296Z",
+  "runner_commit": "1891bf3"
+}

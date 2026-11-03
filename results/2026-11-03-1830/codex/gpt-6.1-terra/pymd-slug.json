@@ -1,0 +1,61 @@
+{
+  "run": "2026-11-03-1830",
+  "kind": "daily",
+  "day": "2026-11-03",
+  "agent": "codex",
+  "model": "gpt-6.1-terra",
+  "effort": "",
+  "task": "pymd-slug",
+  "task_version": "32e7cc8d",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 21610,
+  "tokens_input": 133910,
+  "tokens_output": 978,
+  "tokens_cache_read": 125312,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 23,
+  "quota_5h_before": 17,
+  "quota_5h_after": 18,
+  "quota_week_before": 99,
+  "quota_week_after": 100,
+  "quota_confidence": "ok",
+  "why": "slugify strips again on every path, with a regression test and changelog",
+  "grader": "d61fd3a1",
+  "verdict": "smart",
+  "model_id": "gpt-6.1-terra",
+  "prompt": "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed trailing separators in generated TOC heading IDs and added regression coverage. The full test suite passed (1,131 tests; 112 skipped).",
+    "changed": [
+      "markdown/extensions/toc.py",
+      "tests/test_syntax/extensions/test_toc.py",
+      "docs/extensions/toc.md",
+      "docs/changelog.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "slugify strips again on every path, with a regression test and changelog"
+  },
+  "changed": [
+    "docs/changelog.md",
+    "docs/extensions/toc.md",
+    "markdown/extensions/toc.py",
+    "tests/test_syntax/extensions/test_toc.py"
+  ],
+  "diff": "diff --git a/docs/changelog.md b/docs/changelog.md\nindex dcb6362..1261a17 100644\n--- a/docs/changelog.md\n+++ b/docs/changelog.md\n@@ -12,6 +12,12 @@ and this project adheres to the\n [Python Version Specification](https://packaging.python.org/en/latest/specifications/version-specifiers/).\n See the [Contributing Guide](contributing.md) for details.\n \n+## Unreleased\n+\n+### Fixed\n+\n+* Avoid trailing separators in TOC heading IDs when punctuation follows whitespace.\n+\n ## [3.11.2] - 2026-10-19\n \n ### Fixed\ndiff --git a/docs/extensions/toc.md b/docs/extensions/toc.md\nindex f9d5800..3b98ded 100644\n--- a/docs/extensions/toc.md\n+++ b/docs/extensions/toc.md\n@@ -208,6 +208,9 @@ The following options are provided to configure the output:\n \n     Default: `markdown.extensions.toc.slugify`\n \n+    The default slugifier removes punctuation and ignores leading and trailing\n+    whitespace remaining after punctuation is removed.\n+\n     In order to use a different algorithm to define the id attributes, define  and\n     pass in a callable which takes the following two arguments:\n \ndiff --git a/markdown/extensions/toc.py b/markdown/extensions/toc.py\nindex 3cc6481..0681254 100644\n--- a/markdown/extensions/toc.py\n+++ b/markdown/extensions/toc.py\n@@ -41,7 +41,7 @@ def slugify(value: str, separator: str, unicode: bool = False) -> str:\n         # Replace Extended Latin characters with ASCII, i.e. `žlutý` => `zluty`\n         value = unicodedata.normalize('NFKD', value)\n         value = value.encode('ascii', 'ignore').decode('ascii')\n-    value = re.sub(r'[^\\w\\s-]', '', value).lower()\n+    value = re.sub(r'[^\\w\\s-]', '', value).strip().lower()\n     return re.sub(r'[{}\\s]+'.format(separator), separator, value)\n \n \ndiff --git a/tests/test_syntax/extensions/test_toc.py b/tests/test_syntax/extensions/test_toc.py\nindex 372ba09..64ef625 100644\n--- a/tests/test_syntax/extensions/test_toc.py\n+++ b/tests/test_syntax/extensions/test_toc.py\n@@ -31,6 +31,21 @@ class TestTOC(TestCase):\n         'extensions': [TocExtension()]\n     }\n \n+    def testHeadingPunctuationAfterWhitespace(self):\n+        self.assertMarkdownRenders(\n+            '[TOC]\\n\\n# Hello world !',\n+            '<div class=\"toc\">\\n<ul>\\n<li><a href=\"#hello-world\">Hello world !</a></li>\\n'\n+            '</ul>\\n</div>\\n<h1 id=\"hello-world\">Hello world !</h1>'\n+        )\n+\n+    def testSlugifyWhitespaceAfterPunctuationRemoval(self):\n+        from markdown.extensions.toc import slugify, slugify_unicode\n+\n+        for slug in (slugify, slugify_unicode):\n+            with self.subTest(slug=slug):\n+                self.assertEqual(slug('! Hello world !', '_'), 'hello_world')\n+                self.assertEqual(slug('Hello world -', '_'), 'hello_world_-')\n+\n     def testTOCMarker(self):\n         self.assertMarkdownRenders(\n             self.dedent(\n",
+  "permission_denials": [],
+  "cli_errors": "Reading additional input from stdin...",
+  "exit": 0,
+  "timed_out": false,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": true,
+  "runner_started": "2026-11-03T18:30:05.296Z",
+  "runner_commit": "1891bf3"
+}
