@@ -1,0 +1,59 @@
+{
+  "run": "2026-11-07-1830",
+  "kind": "daily",
+  "day": "2026-11-07",
+  "agent": "claude-code",
+  "model": "claude-sonnet-5-5",
+  "effort": "",
+  "task": "larder-fefo",
+  "task_version": "3d69c258",
+  "cli_version": "2.1.319",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 25463,
+  "tokens_input": 105531,
+  "tokens_output": 1364,
+  "tokens_cache_read": 90170,
+  "tokens_cache_write": 15353,
+  "tokens_reasoning": 67,
+  "quota_5h_before": 8,
+  "quota_5h_after": 8,
+  "quota_week_before": 32,
+  "quota_week_after": 32,
+  "quota_confidence": "ok",
+  "why": "FEFO by the data rules, with a regression test",
+  "grader": "8cff2826",
+  "verdict": "smart",
+  "model_id": "claude-sonnet-5-5",
+  "prompt": "Bug report: cooking bechamel today took the new milk (lot HD-1026) although lot HD-1022 expires tomorrow. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed. `consumptionOrder` in `src/domain/batches.js` sorted newest-received first. It now follows the FEFO rule in `docs/DATA.md`. Earliest expiry goes first, batches with no expiry go last, and ties go to the earlier received date, then the lower id. I added a regression test, and `npm test` (27 tests) and `npm run lint` both pass. I didn't run the bechamel case itself or check lots HD-1022 and HD-1026.",
+    "changed": [
+      "src/domain/batches.js",
+      "tests/stock.test.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "FEFO by the data rules, with a regression test"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/domain/batches.js",
+    "tests/stock.test.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex bb2dd6d..388e57f 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Fix: stock is now used first-expired, first-out, so lots that expire sooner are used before newer ones.\n - Show stock on hand in `GET /items`.\n \n ## 2.3.0 - 2026-10-20\ndiff --git a/src/domain/batches.js b/src/domain/batches.js\nindex ee14fde..46d254f 100644\n--- a/src/domain/batches.js\n+++ b/src/domain/batches.js\n@@ -20,7 +20,13 @@ export function getBatch(store, id) {\n \n // The order in which an item's batches are used up.\n function consumptionOrder(batches) {\n-  return [...batches].sort((a, b) => b.receivedOn.localeCompare(a.receivedOn));\n+  return [...batches].sort(\n+    (a, b) =>\n+      (a.expires === null || a.expires === undefined) - (b.expires === null || b.expires === undefined) ||\n+      (a.expires ?? \"\").localeCompare(b.expires ?? \"\") ||\n+      a.receivedOn.localeCompare(b.receivedOn) ||\n+      a.id - b.id,\n+  );\n }\n \n /**\ndiff --git a/tests/stock.test.js b/tests/stock.test.js\nindex 1f76fe4..479cf51 100644\n--- a/tests/stock.test.js\n+++ b/tests/stock.test.js\n@@ -27,3 +27,15 @@ test(\"waste is recorded against a batch\", () => {\n   assert.equal(m.type, \"waste\");\n   assert.equal(store.data.batches.find((b) => b.id === 6).qty, 12);\n });\n+\n+test(\"consume uses the batch that expires first, not the newest\", () => {\n+  const store = fresh();\n+  store.data.batches.push(\n+    { id: 9001, itemId: 4, lot: \"OLD\", qty: 1, expires: \"2026-10-29\", receivedOn: \"2026-10-20\", location: store.data.batches.find((b) => b.itemId === 4).location },\n+    { id: 9002, itemId: 4, lot: \"NEW\", qty: 1, expires: \"2026-11-30\", receivedOn: \"2026-10-27\", location: store.data.batches.find((b) => b.itemId === 4).location },\n+  );\n+  const used = consume(store, 4, 0.5, { at });\n+  const first = store.data.batches.filter((b) => b.itemId === 4).map((b) => b.id);\n+  assert.ok(first.includes(used[0].batchId));\n+  assert.equal(used[0].batchId, store.data.batches.filter((b) => b.itemId === 4 && b.expires).sort((a, b) => a.expires.localeCompare(b.expires))[0].id);\n+});\n",
+  "permission_denials": [],
+  "cli_errors": "",
+  "exit": 0,
+  "timed_out": false,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": true,
+  "runner_started": "2026-11-07T18:30:05.656Z",
+  "runner_commit": "92ed4df"
+}
