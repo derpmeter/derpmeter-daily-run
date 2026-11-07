@@ -1,0 +1,59 @@
+{
+  "run": "2026-11-07-1830",
+  "kind": "daily",
+  "day": "2026-11-07",
+  "agent": "claude-code",
+  "model": "claude-sonnet-5-5",
+  "effort": "",
+  "task": "pymd-slug",
+  "task_version": "32e7cc8d",
+  "cli_version": "2.1.319",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 51038,
+  "tokens_input": 99388,
+  "tokens_output": 1450,
+  "tokens_cache_read": 86286,
+  "tokens_cache_write": 13094,
+  "tokens_reasoning": 187,
+  "quota_5h_before": 10,
+  "quota_5h_after": 11,
+  "quota_week_before": 32,
+  "quota_week_after": 32,
+  "quota_confidence": "ok",
+  "why": "slugify strips again on every path, with a regression test and changelog",
+  "grader": "d61fd3a1",
+  "verdict": "smart",
+  "model_id": "claude-sonnet-5-5",
+  "prompt": "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed: slugify now strips surrounding whitespace after removing punctuation, so `# Hello world !` gets id `hello-world`. Added a regression test and a changelog entry. The full suite passes.",
+    "changed": [
+      "markdown/extensions/toc.py",
+      "tests/test_syntax/extensions/test_toc.py",
+      "docs/changelog.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "slugify strips again on every path, with a regression test and changelog"
+  },
+  "changed": [
+    "docs/changelog.md",
+    "markdown/extensions/toc.py",
+    "tests/test_syntax/extensions/test_toc.py"
+  ],
+  "diff": "diff --git a/docs/changelog.md b/docs/changelog.md\nindex dcb6362..e28d727 100644\n--- a/docs/changelog.md\n+++ b/docs/changelog.md\n@@ -12,6 +12,13 @@ and this project adheres to the\n [Python Version Specification](https://packaging.python.org/en/latest/specifications/version-specifiers/).\n See the [Contributing Guide](contributing.md) for details.\n \n+## [Unreleased]\n+\n+### Fixed\n+\n+* Fix `toc` extension generating ids with a trailing separator when a heading\n+  ends with punctuation, e.g., `# Hello world !` now gets `hello-world`.\n+\n ## [3.11.2] - 2026-10-19\n \n ### Fixed\ndiff --git a/markdown/extensions/toc.py b/markdown/extensions/toc.py\nindex 3cc6481..0681254 100644\n--- a/markdown/extensions/toc.py\n+++ b/markdown/extensions/toc.py\n@@ -41,7 +41,7 @@ def slugify(value: str, separator: str, unicode: bool = False) -> str:\n         # Replace Extended Latin characters with ASCII, i.e. `žlutý` => `zluty`\n         value = unicodedata.normalize('NFKD', value)\n         value = value.encode('ascii', 'ignore').decode('ascii')\n-    value = re.sub(r'[^\\w\\s-]', '', value).lower()\n+    value = re.sub(r'[^\\w\\s-]', '', value).strip().lower()\n     return re.sub(r'[{}\\s]+'.format(separator), separator, value)\n \n \ndiff --git a/tests/test_syntax/extensions/test_toc.py b/tests/test_syntax/extensions/test_toc.py\nindex 372ba09..b13551e 100644\n--- a/tests/test_syntax/extensions/test_toc.py\n+++ b/tests/test_syntax/extensions/test_toc.py\n@@ -1110,6 +1110,13 @@ class TestTOC(TestCase):\n             extensions=[TocExtension(permalink=True, permalink_title=\"\")]\n         )\n \n+    def testTrailingPunctuationInID(self):\n+        self.assertMarkdownRenders(\n+            '# Hello world !',\n+            '<h1 id=\"hello-world\">Hello world !</h1>',\n+            extensions=['toc']\n+        )\n+\n     def testPermalinkWithUnicodeInID(self):\n         from markdown.extensions.toc import slugify_unicode\n         self.assertMarkdownRenders(\n",
+  "permission_denials": [],
+  "cli_errors": "",
+  "exit": 0,
+  "timed_out": false,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": true,
+  "runner_started": "2026-11-07T18:30:05.656Z",
+  "runner_commit": "92ed4df"
+}
