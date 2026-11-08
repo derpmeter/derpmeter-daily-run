@@ -1,0 +1,59 @@
+{
+  "run": "2026-11-08-1830",
+  "kind": "daily",
+  "day": "2026-11-08",
+  "agent": "gemini-cli",
+  "model": "gemini-4-argon",
+  "effort": "medium",
+  "task": "pymd-slug",
+  "task_version": "32e7cc8d",
+  "cli_version": "1.5.3",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 185206,
+  "tokens_input": 96436,
+  "tokens_output": 5316,
+  "tokens_cache_read": 865737,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 3214,
+  "quota_5h_before": 10.144,
+  "quota_5h_after": 11.289,
+  "quota_week_before": 7.546,
+  "quota_week_after": 8.215,
+  "quota_confidence": "ok",
+  "why": "185s over 150s",
+  "grader": "d61fd3a1",
+  "verdict": "meh",
+  "model_id": "gemini-4-argon-medium",
+  "prompt": "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Fixed `slugify` in the `toc` extension to strip whitespace after removing non-word characters so headings with trailing punctuation do not produce a trailing separator, and added a regression test.",
+    "changed": [
+      "markdown/extensions/toc.py",
+      "tests/test_syntax/extensions/test_toc.py",
+      "docs/changelog.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "slugify strips again on every path, with a regression test and changelog"
+  },
+  "changed": [
+    "docs/changelog.md",
+    "markdown/extensions/toc.py",
+    "tests/test_syntax/extensions/test_toc.py"
+  ],
+  "diff": "diff --git a/docs/changelog.md b/docs/changelog.md\nindex dcb6362..896d7a7 100644\n--- a/docs/changelog.md\n+++ b/docs/changelog.md\n@@ -12,6 +12,13 @@ and this project adheres to the\n [Python Version Specification](https://packaging.python.org/en/latest/specifications/version-specifiers/).\n See the [Contributing Guide](contributing.md) for details.\n \n+## [unreleased]\n+\n+### Fixed\n+\n+* Strip whitespace in `toc` `slugify` after removing non-word characters so\n+  headings with trailing punctuation do not get a trailing separator.\n+\n ## [3.11.2] - 2026-10-19\n \n ### Fixed\ndiff --git a/markdown/extensions/toc.py b/markdown/extensions/toc.py\nindex 3cc6481..0681254 100644\n--- a/markdown/extensions/toc.py\n+++ b/markdown/extensions/toc.py\n@@ -41,7 +41,7 @@ def slugify(value: str, separator: str, unicode: bool = False) -> str:\n         # Replace Extended Latin characters with ASCII, i.e. `žlutý` => `zluty`\n         value = unicodedata.normalize('NFKD', value)\n         value = value.encode('ascii', 'ignore').decode('ascii')\n-    value = re.sub(r'[^\\w\\s-]', '', value).lower()\n+    value = re.sub(r'[^\\w\\s-]', '', value).strip().lower()\n     return re.sub(r'[{}\\s]+'.format(separator), separator, value)\n \n \ndiff --git a/tests/test_syntax/extensions/test_toc.py b/tests/test_syntax/extensions/test_toc.py\nindex 372ba09..9609fa1 100644\n--- a/tests/test_syntax/extensions/test_toc.py\n+++ b/tests/test_syntax/extensions/test_toc.py\n@@ -1409,6 +1409,29 @@ class TestTOC(TestCase):\n             extensions=[TocExtension(), 'footnotes']\n         )\n \n+    def testTrailingPunctuationInHeading(self):\n+        self.assertMarkdownRenders(\n+            '# Hello world !',\n+            '<h1 id=\"hello-world\">Hello world !</h1>',\n+            expected_attrs={\n+                'toc': (\n+                    '<div class=\"toc\">\\n'\n+                      '<ul>\\n'                                                 # noqa\n+                        '<li><a href=\"#hello-world\">Hello world !</a></li>\\n'  # noqa\n+                      '</ul>\\n'                                                # noqa\n+                    '</div>\\n'\n+                ),\n+                'toc_tokens': [{\n+                    'level': 1,\n+                    'id': 'hello-world',\n+                    'name': 'Hello world !',\n+                    'html': 'Hello world !',\n+                    'data-toc-label': '',\n+                    'children': []\n+                }]\n+            }\n+        )\n+\n \n class testStripTags(TestCase):\n \n",
+  "permission_denials": [],
+  "cli_errors": "E1109 04:27:34.020141    2742 telemetry.go:141] error recording trajectory segment analytics: Post \"https://daily-cloudcode-pa.googleapis.com/v1internal:recordTrajectoryAnalytics\": context canceled",
+  "exit": 0,
+  "timed_out": false,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": false,
+  "runner_started": "2026-11-08T18:30:06.357Z",
+  "runner_commit": "af49d4a"
+}
