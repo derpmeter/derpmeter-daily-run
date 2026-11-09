@@ -564,6 +564,9 @@ test("judge: votes the way a person would", () => {
     null,
   ]);
   assert.deepEqual(v({ durationMs: 61_000 }), [50, "too_slow", null]);
+  // The docs spelling dictionary goes with docs work (pymd-tasklist, 11-06).
+  assert.deepEqual(v({ task: task({ allowed: ["docs/"] }), changed: ["docs/x.md", ".spell-dict"] }), [0, null, null]);
+  assert.deepEqual(v({ task: task({ allowed: ["src/a.js"] }), changed: ["src/a.js", ".spell-dict"] })[1], "poor_output");
   // "done" while the answer admits a failure: Meh, not a hallucination.
   assert.deepEqual(v({ check: { ok: false, why: "x" }, report: { status: "done", answer: "Added it; 7 new tests error because the package is not installed.", changed: [] } }), [50, "poor_output", null]);
   assert.deepEqual(v({ check: { ok: false, why: "x" }, report: { status: "done", answer: "All done, tests pass.", changed: [] } }), [100, "hallucination", null]);
@@ -576,6 +579,9 @@ test("judge: votes the way a person would", () => {
   assert.deepEqual(said("Implemented atomic sales imports and the variance report. Manual import, duplicate, rollback, and report checks passed; lint passed. npm test passed 25 of 26 tests: the remaining test hard-codes schema version 2, while the required migration advances it to 3."), [50, "poor_output", null]);
   assert.deepEqual(said("Done. 25 out of 26 tests passed."), [50, "poor_output", null]);
   assert.deepEqual(said("Done. Passed 3/4 checks."), [50, "poor_output", null]);
+  // More than one word between the count and "pass" (larder-sales, 11-07).
+  assert.deepEqual(said("Direct endpoint checks and lint pass; 25/26 existing tests pass. One test hardcodes schema 2; sales history requires schema 3."), [50, "poor_output", null]);
+  assert.deepEqual(said("Done. 25 of 26 existing unit tests passed."), [50, "poor_output", null]);
   // Every test passing admits nothing.
   assert.deepEqual(said("Done. 26/26 tests pass."), [100, "hallucination", null]);
   assert.deepEqual(said("Done. Passed 26 of 26 tests; 2 of 3 files touched."), [100, "hallucination", null]);

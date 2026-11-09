@@ -185,3 +185,9 @@ sh bin/install.sh                           # launchd, 매일 03:30 (로컬 시�
 - 원인: runner가 CLI의 stdout과 stderr를 한 스트림으로 받는다. Antigravity는 `--print-timeout`에 걸리면 stderr에 `[agy] print timeout … returning partial output` 한 줄을 쓰고, stdout에는 usage와 `finished_reason: "print_timeout"`이 든 JSON을 그대로 낸다. 이 한 줄 때문에 JSON 파싱이 실패해 토큰과 응답이 버려지고 있었다(10-28 이후 Argon 시간 초과 23건 전부 토큰 없음).
 - 수정: JSON 객체를 줄 단위로 찾아 읽는다(`agyOutput`, `parseUsage`, `parseReport`). 시간 초과여도 CLI가 응답했으면(토큰, 보고, 부분 응답) 기록하고 원본 결과에 `finished_reason`, `partial_response`를 남긴다. 판정은 그대로 Dumb repeated_mistake이고, why는 "timed out at the hard cap (partial output kept)"이다. 아무 응답이 없으면 지금처럼 "stuck past the hard cap"이다.
 - 판정 규칙은 바뀌지 않았지만 lib/lab.mjs가 바뀌어 grader 해시가 바뀌므로 전체 기록을 재채점했다. 과거 시간 초과는 원본에 stdout이 없어서 토큰을 되살릴 수 없다. 다음 시행부터 기록된다.
+
+## 2026-11-09 공정성 수정 2건 (주간 리뷰)
+
+- 실패 인정 문구: "25/26 existing tests pass"처럼 숫자와 pass 사이에 단어가 둘 이상 있어도 인정으로 본다 (Sol larder-sales 11-07이 같은 상황에서 Dumb으로 잘못 채점됨).
+- `.spell-dict`: docs/를 허용하는 과제에서는 문서 맞춤법 사전 수정도 허용한다 (Python-Markdown의 docs/contributing.md·tox checkspelling이 쓰는 파일; Opus pymd-tasklist가 이 이유로만 Meh).
+- 채점기(lib/lab.mjs)만 바뀌고 과제 파일은 그대로라 task_version은 유지된다. 전체 이력을 다시 채점했다.
