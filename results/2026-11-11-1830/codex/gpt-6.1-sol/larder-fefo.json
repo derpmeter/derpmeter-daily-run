@@ -1,0 +1,59 @@
+{
+  "run": "2026-11-11-1830",
+  "kind": "daily",
+  "day": "2026-11-11",
+  "agent": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "",
+  "task": "larder-fefo",
+  "task_version": "3d69c258",
+  "cli_version": "0.163.0",
+  "plan": "plus",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 46514,
+  "tokens_input": 132609,
+  "tokens_output": 1358,
+  "tokens_cache_read": 105472,
+  "tokens_cache_write": 0,
+  "tokens_reasoning": 6,
+  "quota_5h_before": 1,
+  "quota_5h_after": 2,
+  "quota_week_before": 17,
+  "quota_week_after": 18,
+  "quota_confidence": "ok",
+  "why": "47s over 35s",
+  "grader": "b124ca02",
+  "verdict": "meh",
+  "model_id": "gpt-6.1-sol",
+  "prompt": "Bug report: cooking bechamel today took the new milk (lot HD-1026) although lot HD-1022 expires tomorrow. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed consumption to use earliest-expiring lots first. Added regression tests for bechamel and ordering rules. All 28 tests and lint pass.",
+    "changed": [
+      "src/domain/batches.js",
+      "tests/stock.test.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "FEFO by the data rules, with a regression test"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/domain/batches.js",
+    "tests/stock.test.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex bb2dd6d..84a5787 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,7 @@\n \n ## Unreleased\n \n+- Consume stock by earliest expiry first, so cooking uses older-expiring milk before newer lots.\n - Show stock on hand in `GET /items`.\n \n ## 2.3.0 - 2026-10-20\ndiff --git a/src/domain/batches.js b/src/domain/batches.js\nindex ee14fde..d6a355b 100644\n--- a/src/domain/batches.js\n+++ b/src/domain/batches.js\n@@ -20,7 +20,10 @@ export function getBatch(store, id) {\n \n // The order in which an item's batches are used up.\n function consumptionOrder(batches) {\n-  return [...batches].sort((a, b) => b.receivedOn.localeCompare(a.receivedOn));\n+  return [...batches].sort((a, b) =>\n+    (a.expires || \"9999-99-99\").localeCompare(b.expires || \"9999-99-99\") ||\n+    a.receivedOn.localeCompare(b.receivedOn) ||\n+    a.id - b.id);\n }\n \n /**\ndiff --git a/tests/stock.test.js b/tests/stock.test.js\nindex 1f76fe4..6069dbc 100644\n--- a/tests/stock.test.js\n+++ b/tests/stock.test.js\n@@ -2,10 +2,43 @@ import test from \"node:test\";\n import assert from \"node:assert/strict\";\n import { consume, waste } from \"../src/domain/batches.js\";\n import { onHand } from \"../src/domain/items.js\";\n+import { cook } from \"../src/domain/recipes.js\";\n import { fresh } from \"./helpers.js\";\n \n const at = \"2026-10-28T10:00:00Z\";\n \n+test(\"cooking bechamel uses milk expiring tomorrow before the newer lot\", () => {\n+  const store = fresh();\n+  const before = store.data.movements.length;\n+  const used = cook(store, 2, 15, { at });\n+  assert.deepEqual(used.find((n) => n.itemId === 2).batches, [\n+    { batchId: 4, qty: 2 },\n+    { batchId: 3, qty: 1 },\n+  ]);\n+  assert.equal(store.data.batches.find((b) => b.lot === \"HD-1022\").qty, 0);\n+  assert.equal(store.data.batches.find((b) => b.lot === \"HD-1026\").qty, 7);\n+  assert.deepEqual(store.data.movements.slice(before).filter((m) => [3, 4].includes(m.batchId))\n+    .map(({ type, batchId, qty, at, ref }) => ({ type, batchId, qty, at, ref })), [\n+    { type: \"consume\", batchId: 4, qty: 2, at, ref: \"recipe:2\" },\n+    { type: \"consume\", batchId: 3, qty: 1, at, ref: \"recipe:2\" },\n+  ]);\n+});\n+\n+test(\"consumption orders expiry before receipt date, with undated batches last\", () => {\n+  const store = fresh();\n+  const batch = store.data.batches.find((b) => b.itemId === 2);\n+  store.data.batches = [\n+    { ...batch, id: 20, qty: 1, expires: null, receivedOn: \"2026-10-01\" },\n+    { ...batch, id: 19, qty: 1, expires: \"2026-11-01\", receivedOn: \"2026-10-01\" },\n+    { ...batch, id: 18, qty: 1, expires: \"2026-10-29\", receivedOn: \"2026-10-26\" },\n+    { ...batch, id: 17, qty: 1, expires: \"2026-10-29\", receivedOn: \"2026-10-22\" },\n+    { ...batch, id: 16, qty: 1, expires: \"2026-10-29\", receivedOn: \"2026-10-22\" },\n+    { ...batch, id: 21, qty: 1, expires: \"\", receivedOn: \"2026-10-02\" },\n+  ];\n+  assert.deepEqual(consume(store, 2, 6, { at }).map((b) => b.batchId),\n+    [16, 17, 18, 19, 20, 21]);\n+});\n+\n test(\"consume takes stock and writes the ledger\", () => {\n   const store = fresh();\n   const before = store.data.movements.length;\n",
+  "permission_denials": [],
+  "cli_errors": "Reading additional input from stdin...",
+  "exit": 0,
+  "timed_out": false,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": true,
+  "runner_started": "2026-11-11T18:30:08.174Z",
+  "runner_commit": "74dcb0d"
+}
