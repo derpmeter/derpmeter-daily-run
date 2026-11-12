@@ -191,3 +191,9 @@ sh bin/install.sh                           # launchd, 매일 03:30 (로컬 시�
 - 실패 인정 문구: "25/26 existing tests pass"처럼 숫자와 pass 사이에 단어가 둘 이상 있어도 인정으로 본다 (Sol larder-sales 11-07이 같은 상황에서 Dumb으로 잘못 채점됨).
 - `.spell-dict`: docs/를 허용하는 과제에서는 문서 맞춤법 사전 수정도 허용한다 (Python-Markdown의 docs/contributing.md·tox checkspelling이 쓰는 파일; Opus pymd-tasklist가 이 이유로만 Meh).
 - 채점기(lib/lab.mjs)만 바뀌고 과제 파일은 그대로라 task_version은 유지된다. 전체 이력을 다시 채점했다.
+
+## 2026-11-12 Gemini 4 Carbon 추가 (사용자 지시)
+
+- agy 1.5.5 모델 목록에 `gemini-4-carbon-medium`이 있어 grid.json에 추가했다. Argon처럼 medium으로 고정한다.
+- trap-missing-file 한 건을 dry run으로 확인했다(모델 해석 정상, 토큰 기록됨, 저장 없음). 11-13 03:30 실행부터 매일 돈다.
+- 같은 agy 계정 쿼터를 Argon과 나눠 쓰므로, 쿼터 부족으로 skip이 생기는지 지켜본다.
