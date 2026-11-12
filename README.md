@@ -12,8 +12,9 @@ This is **not a benchmark**. There is no ranking, no difficulty ladder and no cl
 | Codex | GPT-6.1 Sol, GPT-6.1 Terra | model default |
 | Antigravity | Gemini 4 Argon | medium (pinned) |
 | Antigravity | Gemini 4 Carbon | medium (pinned) |
+| Antigravity | Gemini 4 Hydrogen | medium (pinned) |
 
-The list lives in [`grid.json`](grid.json). Antigravity names effort inside the model id, and a bare id silently falls back to the user's own setting, so Argon and Carbon are pinned to `gemini-4-argon-medium` and `gemini-4-carbon-medium`.
+The list lives in [`grid.json`](grid.json). Antigravity names effort inside the model id, and a bare id silently falls back to the user's own setting, so Argon, Carbon and Hydrogen are pinned to `gemini-4-argon-medium`, `gemini-4-carbon-medium` and `gemini-4-hydrogen-medium`.
 
 ## Fixtures
 

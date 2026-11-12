@@ -197,3 +197,9 @@ sh bin/install.sh                           # launchd, 매일 03:30 (로컬 시�
 - agy 1.5.5 모델 목록에 `gemini-4-carbon-medium`이 있어 grid.json에 추가했다. Argon처럼 medium으로 고정한다.
 - trap-missing-file 한 건을 dry run으로 확인했다(모델 해석 정상, 토큰 기록됨, 저장 없음). 11-13 03:30 실행부터 매일 돈다.
 - 같은 agy 계정 쿼터를 Argon과 나눠 쓰므로, 쿼터 부족으로 skip이 생기는지 지켜본다.
+
+## 2026-11-13 Gemini 4 Hydrogen 추가 (사용자 지시)
+
+- Gemini 4 Hydrogen이 11-12 GA. agy 1.5.5 `agy models`에 `gemini-4-hydrogen-{low,medium,high,xhigh}`가 있어 grid.json에 추가했다. 기본값은 High지만 다른 Gemini와 같게 medium으로 고정한다.
+- 11-13 03:30 실행이 도는 중이라 dry run은 하지 않았다(같은 agy 쿼터). 11-14 03:30 실행부터 매일 돈다. 첫 결과에서 모델 해석(wrongModel)과 쿼터 skip을 확인한다.
+- agy 쿼터를 Argon·Carbon·Hydrogen 셋이 나눠 쓴다.

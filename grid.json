@@ -14,7 +14,8 @@
   "gemini-cli": {
     "models": [
       "gemini-4-argon",
-      "gemini-4-carbon"
+      "gemini-4-carbon",
+      "gemini-4-hydrogen"
     ],
     "efforts": [
       "medium"
