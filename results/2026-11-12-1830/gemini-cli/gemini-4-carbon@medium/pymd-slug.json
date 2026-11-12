@@ -1,0 +1,59 @@
+{
+  "run": "2026-11-12-1830",
+  "kind": "daily",
+  "day": "2026-11-12",
+  "agent": "gemini-cli",
+  "model": "gemini-4-carbon",
+  "effort": "medium",
+  "task": "pymd-slug",
+  "task_version": "32e7cc8d",
+  "cli_version": "1.5.5",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 540502,
+  "tokens_input": 179808,
+  "tokens_output": 29862,
+  "tokens_cache_read": 3196498,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 24559,
+  "quota_5h_before": 24.097,
+  "quota_5h_after": 25.82,
+  "quota_week_before": 23.859,
+  "quota_week_after": 23.172,
+  "quota_confidence": "ok",
+  "why": "541s over 150s",
+  "grader": "70fce84d",
+  "verdict": "meh",
+  "model_id": "gemini-4-carbon-medium",
+  "prompt": "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Stripped leading and trailing whitespace in `toc` `slugify` after removing non-word characters so headings like `# Hello world !` no longer get a trailing separator, and added regression tests and a changelog entry.",
+    "changed": [
+      "markdown/extensions/toc.py",
+      "tests/test_syntax/extensions/test_toc.py",
+      "docs/changelog.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "slugify strips again on every path, with a regression test and changelog"
+  },
+  "changed": [
+    "docs/changelog.md",
+    "markdown/extensions/toc.py",
+    "tests/test_syntax/extensions/test_toc.py"
+  ],
+  "diff": "diff --git a/docs/changelog.md b/docs/changelog.md\nindex dcb6362..72f09d8 100644\n--- a/docs/changelog.md\n+++ b/docs/changelog.md\n@@ -12,6 +12,13 @@ and this project adheres to the\n [Python Version Specification](https://packaging.python.org/en/latest/specifications/version-specifiers/).\n See the [Contributing Guide](contributing.md) for details.\n \n+## [Unreleased]\n+\n+### Fixed\n+\n+* Strip leading and trailing whitespace in `toc` `slugify` after removing\n+  punctuation so generated IDs do not start or end with a separator.\n+\n ## [3.11.2] - 2026-10-19\n \n ### Fixed\ndiff --git a/markdown/extensions/toc.py b/markdown/extensions/toc.py\nindex 3cc6481..0681254 100644\n--- a/markdown/extensions/toc.py\n+++ b/markdown/extensions/toc.py\n@@ -41,7 +41,7 @@ def slugify(value: str, separator: str, unicode: bool = False) -> str:\n         # Replace Extended Latin characters with ASCII, i.e. `žlutý` => `zluty`\n         value = unicodedata.normalize('NFKD', value)\n         value = value.encode('ascii', 'ignore').decode('ascii')\n-    value = re.sub(r'[^\\w\\s-]', '', value).lower()\n+    value = re.sub(r'[^\\w\\s-]', '', value).strip().lower()\n     return re.sub(r'[{}\\s]+'.format(separator), separator, value)\n \n \ndiff --git a/tests/test_syntax/extensions/test_toc.py b/tests/test_syntax/extensions/test_toc.py\nindex 372ba09..d555303 100644\n--- a/tests/test_syntax/extensions/test_toc.py\n+++ b/tests/test_syntax/extensions/test_toc.py\n@@ -1409,6 +1409,72 @@ class TestTOC(TestCase):\n             extensions=[TocExtension(), 'footnotes']\n         )\n \n+    def test_punctuation_whitespace_in_id(self):\n+        from markdown.extensions.toc import slugify_unicode\n+        self.assertMarkdownRenders(\n+            self.dedent(\n+                '''\n+                # Hello world !\n+                # ! Leading and trailing ?\n+                # Hello 世界\n+                '''\n+            ),\n+            self.dedent(\n+                '''\n+                <h1 id=\"hello-world\">Hello world !</h1>\n+                <h1 id=\"leading-and-trailing\">! Leading and trailing ?</h1>\n+                <h1 id=\"hello\">Hello 世界</h1>\n+                '''\n+            ),\n+            expected_attrs={\n+                'toc': (\n+                    '<div class=\"toc\">\\n'\n+                      '<ul>\\n'                                                                     # noqa\n+                        '<li><a href=\"#hello-world\">Hello world !</a></li>\\n'                      # noqa\n+                        '<li><a href=\"#leading-and-trailing\">! Leading and trailing ?</a></li>\\n'  # noqa\n+                        '<li><a href=\"#hello\">Hello 世界</a></li>\\n'                                # noqa\n+                      '</ul>\\n'                                                                    # noqa\n+                    '</div>\\n'\n+                ),\n+                'toc_tokens': [\n+                    {\n+                        'level': 1,\n+                        'id': 'hello-world',\n+                        'name': 'Hello world !',\n+                        'html': 'Hello world !',\n+                        'data-toc-label': '',\n+                        'children': []\n+                    },\n+                    {\n+                        'level': 1,\n+                        'id': 'leading-and-trailing',\n+                        'name': '! Leading and trailing ?',\n+                        'html': '! Leading and trailing ?',\n+                        'data-toc-label': '',\n+                        'children': []\n+                    },\n+                    {\n+                        'level': 1,\n+                        'id': 'hello',\n+                        'name': 'Hello 世界',\n+                        'html': 'Hello 世界',\n+                        'data-toc-label': '',\n+                        'children': []\n+                    }\n+                ]\n+            }\n+        )\n+        self.assertMarkdownRenders(\n+            '# Hello world !',\n+            '<h1 id=\"hello_world\">Hello world !</h1>',\n+            extensions=[TocExtension(separator='_')]\n+        )\n+        self.assertMarkdownRenders(\n+            '# Unicode ヘッダー !',\n+            '<h1 id=\"unicode-ヘッダー\">Unicode ヘッダー !</h1>',\n+            extensions=[TocExtension(slugify=slugify_unicode)]\n+        )\n+\n \n class testStripTags(TestCase):\n \n",
+  "permission_denials": [],
+  "cli_errors": "E1113 05:51:45.934361    5054 telemetry.go:141] error recording trajectory segment analytics: Post \"https://daily-cloudcode-pa.googleapis.com/v1internal:recordTrajectoryAnalytics\": context canceled",
+  "exit": 0,
+  "timed_out": false,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": false,
+  "runner_started": "2026-11-12T18:30:06.739Z",
+  "runner_commit": "ae8f033"
+}
