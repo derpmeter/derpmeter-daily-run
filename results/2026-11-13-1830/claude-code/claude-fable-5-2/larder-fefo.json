@@ -1,0 +1,59 @@
+{
+  "run": "2026-11-13-1830",
+  "kind": "daily",
+  "day": "2026-11-13",
+  "agent": "claude-code",
+  "model": "claude-fable-5-2",
+  "effort": "",
+  "task": "larder-fefo",
+  "task_version": "3d69c258",
+  "cli_version": "2.1.323",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 33916,
+  "tokens_input": 151543,
+  "tokens_output": 2417,
+  "tokens_cache_read": 129988,
+  "tokens_cache_write": 21545,
+  "tokens_reasoning": 240,
+  "quota_5h_before": 18,
+  "quota_5h_after": 19,
+  "quota_week_before": 49,
+  "quota_week_after": 49,
+  "quota_confidence": "ok",
+  "why": "FEFO by the data rules, with a regression test",
+  "grader": "b124ca02",
+  "verdict": "smart",
+  "model_id": "claude-fable-5-2",
+  "prompt": "Bug report: cooking bechamel today took the new milk (lot HD-1026) although lot HD-1022 expires tomorrow. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed: consumption took the most recently received batch first; it now follows the FEFO rule in docs/DATA.md (earliest expiry first, no expiry last, then earliest received, then lower id), so bechamel uses milk lot HD-1022 before HD-1026. Added two regression tests in tests/stock.test.js (the bechamel case and the full ordering) and a CHANGELOG bullet; `npm test` (28 pass) and `npm run lint` are clean. Batches already past their expiry date are still consumed first — I left that unchanged since the data rules don't exclude them.",
+    "changed": [
+      "src/domain/batches.js",
+      "tests/stock.test.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "FEFO by the data rules, with a regression test"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/domain/batches.js",
+    "tests/stock.test.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex bb2dd6d..06671e3 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Show stock on hand in `GET /items`.\n+- Fix: stock is taken from the batch that expires first (FEFO); cooking used the newest batch first.\n \n ## 2.3.0 - 2026-10-20\n \ndiff --git a/src/domain/batches.js b/src/domain/batches.js\nindex ee14fde..6ed60f1 100644\n--- a/src/domain/batches.js\n+++ b/src/domain/batches.js\n@@ -18,9 +18,17 @@ export function getBatch(store, id) {\n   return batch;\n }\n \n-// The order in which an item's batches are used up.\n+// The order in which an item's batches are used up: first expired first out,\n+// no expiry last, then received first, then lower id.\n function consumptionOrder(batches) {\n-  return [...batches].sort((a, b) => b.receivedOn.localeCompare(a.receivedOn));\n+  return [...batches].sort((a, b) => {\n+    if (a.expires !== b.expires) {\n+      if (!a.expires) return 1;\n+      if (!b.expires) return -1;\n+      return a.expires.localeCompare(b.expires);\n+    }\n+    return a.receivedOn.localeCompare(b.receivedOn) || a.id - b.id;\n+  });\n }\n \n /**\ndiff --git a/tests/stock.test.js b/tests/stock.test.js\nindex 1f76fe4..4977e24 100644\n--- a/tests/stock.test.js\n+++ b/tests/stock.test.js\n@@ -1,6 +1,7 @@\n import test from \"node:test\";\n import assert from \"node:assert/strict\";\n import { consume, waste } from \"../src/domain/batches.js\";\n+import { cook } from \"../src/domain/recipes.js\";\n import { onHand } from \"../src/domain/items.js\";\n import { fresh } from \"./helpers.js\";\n \n@@ -27,3 +28,30 @@ test(\"waste is recorded against a batch\", () => {\n   assert.equal(m.type, \"waste\");\n   assert.equal(store.data.batches.find((b) => b.id === 6).qty, 12);\n });\n+\n+test(\"cooking bechamel takes the milk that expires first (HD-1022 before HD-1026)\", () => {\n+  const store = fresh();\n+  const bechamel = store.data.recipes.find((r) => /bechamel/i.test(r.name));\n+  const lot = (name) => store.data.batches.find((b) => b.lot === name);\n+  const milkNeed = bechamel.ingredients.find((i) => i.itemId === lot(\"HD-1022\").itemId).qty;\n+  assert.ok(milkNeed <= 2, \"one batch of bechamel fits in lot HD-1022\");\n+  const newBefore = lot(\"HD-1026\").qty;\n+  cook(store, bechamel.id, bechamel.portions, { at });\n+  assert.equal(lot(\"HD-1022\").qty, Math.round((2 - milkNeed) * 1000) / 1000);\n+  assert.equal(lot(\"HD-1026\").qty, newBefore);\n+});\n+\n+test(\"consume follows FEFO: expiry, no expiry last, then received first, then id\", () => {\n+  const store = fresh();\n+  const base = { itemId: 4, lot: \"T\", qty: 1, location: \"dry\" };\n+  store.data.batches = store.data.batches.filter((b) => b.itemId !== 4);\n+  store.data.batches.push(\n+    { ...base, id: 101, receivedOn: \"2026-10-01\", expires: null },\n+    { ...base, id: 102, receivedOn: \"2026-10-20\", expires: \"2026-12-01\" },\n+    { ...base, id: 104, receivedOn: \"2026-10-10\", expires: \"2026-12-01\" },\n+    { ...base, id: 103, receivedOn: \"2026-10-10\", expires: \"2026-12-01\" },\n+    { ...base, id: 105, receivedOn: \"2026-10-25\", expires: \"2026-11-05\" },\n+  );\n+  const used = consume(store, 4, 5, { at });\n+  assert.deepEqual(used.map((u) => u.batchId), [105, 103, 104, 102, 101]);\n+});\n",
+  "permission_denials": [],
+  "cli_errors": "",
+  "exit": 0,
+  "timed_out": false,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": true,
+  "runner_started": "2026-11-13T18:30:06.666Z",
+  "runner_commit": "b5291fd"
+}
