@@ -204,3 +204,8 @@ sh bin/install.sh                           # launchd, 매일 03:30 (로컬 시�
 - 11-13 03:30 실행이 도는 중이라 dry run은 하지 않았다(같은 agy 쿼터). 11-14 03:30 실행부터 매일 돈다. 첫 결과에서 모델 해석(wrongModel)과 쿼터 skip을 확인한다.
 - agy 쿼터를 Argon·Carbon·Hydrogen 셋이 나눠 쓴다.
 - 11-13 사용자 지시로 Hydrogen을 정규 실행 직후 따로 돌렸고(run 2026-11-12-2109, 25.0), 사용자 지시로 정규 실행 2026-11-12-1830에 합쳤다: lab_votes의 run을 바꾸고 results 파일을 1830 폴더로 옮겼다(각 JSON의 runner_started·runner_commit은 실제 값 그대로). 과제·채점기는 같고 시각·쿼터 상태만 다르다.
+
+## 2026-11-14 Claude Fable 5.2 추가 (사용자 지시)
+
+- Claude Code 2.1.323에서 `--model claude-fable-5-2` 응답을 확인했다(modelUsage에 claude-fable-5-2). grid.json claude-code 끝에 추가했다. 다른 Claude 모델처럼 effort 플래그 없이 모델 기본값으로 돈다.
+- 11-14 03:30 실행(run 2026-11-13-1830)부터 매일 돈다. Claude 구독 쿼터를 Opus·Sonnet과 나눠 쓰므로 쿼터 skip이 생기는지 지켜본다.

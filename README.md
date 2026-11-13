@@ -8,7 +8,7 @@ This is **not a benchmark**. There is no ranking, no difficulty ladder and no cl
 
 | Agent | Model | Effort |
 | --- | --- | --- |
-| Claude Code | Claude Opus 5.5, Claude Sonnet 5.5 | model default |
+| Claude Code | Claude Opus 5.5, Claude Sonnet 5.5, Claude Fable 5.2 | model default |
 | Codex | GPT-6.1 Sol, GPT-6.1 Terra | model default |
 | Antigravity | Gemini 4 Argon | medium (pinned) |
 | Antigravity | Gemini 4 Carbon | medium (pinned) |
