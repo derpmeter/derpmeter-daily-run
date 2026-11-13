@@ -9,7 +9,7 @@
 // kept: --apply stores its votes in DerpMeter's lab_votes table, --publish
 // commits its raw results to results/<run>/ on branch results/<run>, merged
 // into main. "daily" runs (launchd) make the weekly series; "tuning" runs
-// are difficulty experiments. Default is a dry run. Plan: docs/PLAN.md.
+// are difficulty experiments. Default is a dry run. How it works: README.md.
 import { existsSync } from "node:fs";
 import { appendFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
@@ -335,7 +335,9 @@ for (const r of results) {
   cellsOut.set(k, c);
 }
 const lines = [
-  `# Lab Daily run ${run}`,
+  `# DerpMeter Daily Run ${run}`,
+  "",
+  `Results on the site: https://derpmeter.com/lab/daily/runs/${run}`,
   "",
   `Kind: ${kind}. Started ${started.toISOString()}, runner ${runnerCommit}. Score = mean of the Lab's votes (Smart 0, Meh 50, Dumb 100).`,
   "",
