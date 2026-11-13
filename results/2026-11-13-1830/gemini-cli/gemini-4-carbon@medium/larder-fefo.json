@@ -1,0 +1,59 @@
+{
+  "run": "2026-11-13-1830",
+  "kind": "daily",
+  "day": "2026-11-13",
+  "agent": "gemini-cli",
+  "model": "gemini-4-carbon",
+  "effort": "medium",
+  "task": "larder-fefo",
+  "task_version": "3d69c258",
+  "cli_version": "1.5.8",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 239961,
+  "tokens_input": 57179,
+  "tokens_output": 12162,
+  "tokens_cache_read": 404078,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 8149,
+  "quota_5h_before": 11.629,
+  "quota_5h_after": 12.631,
+  "quota_week_before": 27.425,
+  "quota_week_after": 27.925,
+  "quota_confidence": "ok",
+  "why": "240s over 35s",
+  "grader": "b124ca02",
+  "verdict": "meh",
+  "model_id": "gemini-4-carbon-medium",
+  "prompt": "Bug report: cooking bechamel today took the new milk (lot HD-1026) although lot HD-1022 expires tomorrow. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Fixed batch consumption to use first-expired, first-out (FEFO) ordering and added regression tests.",
+    "changed": [
+      "src/domain/batches.js",
+      "tests/fefo.test.js",
+      "CHANGELOG.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "FEFO by the data rules, with a regression test"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/domain/batches.js",
+    "tests/fefo.test.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex bb2dd6d..1ce59dd 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Show stock on hand in `GET /items`.\n+- Consume batches in first-expired, first-out (FEFO) order.\n \n ## 2.3.0 - 2026-10-20\n \ndiff --git a/src/domain/batches.js b/src/domain/batches.js\nindex ee14fde..f5e013e 100644\n--- a/src/domain/batches.js\n+++ b/src/domain/batches.js\n@@ -20,7 +20,13 @@ export function getBatch(store, id) {\n \n // The order in which an item's batches are used up.\n function consumptionOrder(batches) {\n-  return [...batches].sort((a, b) => b.receivedOn.localeCompare(a.receivedOn));\n+  return [...batches].sort((a, b) => {\n+    if (a.expires && b.expires && a.expires !== b.expires)\n+      return a.expires.localeCompare(b.expires);\n+    if (a.expires && !b.expires) return -1;\n+    if (!a.expires && b.expires) return 1;\n+    return a.receivedOn.localeCompare(b.receivedOn) || a.id - b.id;\n+  });\n }\n \n /**\ndiff --git a/tests/fefo.test.js b/tests/fefo.test.js\nnew file mode 100644\nindex 0000000..06b7b05\n--- /dev/null\n+++ b/tests/fefo.test.js\n@@ -0,0 +1,58 @@\n+import test from \"node:test\";\n+import assert from \"node:assert/strict\";\n+import { consume } from \"../src/domain/batches.js\";\n+import { cook } from \"../src/domain/recipes.js\";\n+import { app, fresh } from \"./helpers.js\";\n+\n+const at = \"2026-10-28T10:00:00Z\";\n+\n+test(\"cooking bechamel takes soonest-expiring milk lot HD-1022 before HD-1026\", async () => {\n+  const { handle, store } = app();\n+  const res = await handle({ method: \"POST\", path: \"/recipes/2/cook\", body: { portions: 10 } });\n+  assert.equal(res.status, 200);\n+  const milkUsed = res.body.used.find((u) => u.itemId === 2);\n+  assert.deepEqual(milkUsed.batches, [{ batchId: 4, qty: 2 }]);\n+  assert.equal(store.data.batches.find((b) => b.lot === \"HD-1022\").qty, 0);\n+  assert.equal(store.data.batches.find((b) => b.lot === \"HD-1026\").qty, 8);\n+});\n+\n+test(\"cooking spills over from HD-1022 into HD-1026 when more milk is needed\", () => {\n+  const store = fresh();\n+  const used = cook(store, 2, 15, { at });\n+  const milkUsed = used.find((u) => u.itemId === 2);\n+  assert.deepEqual(milkUsed.batches, [\n+    { batchId: 4, qty: 2 },\n+    { batchId: 3, qty: 1 },\n+  ]);\n+  assert.equal(store.data.batches.find((b) => b.lot === \"HD-1022\").qty, 0);\n+  assert.equal(store.data.batches.find((b) => b.lot === \"HD-1026\").qty, 7);\n+});\n+\n+test(\"consume follows FEFO: earliest expiry, no-expiry last, then receivedOn, then id\", () => {\n+  const store = fresh();\n+  store.data.items.push({\n+    id: 99,\n+    sku: \"DRY-TEST\",\n+    name: \"salt\",\n+    unit: \"kg\",\n+    minQty: 1,\n+    supplierId: 1,\n+    priceCents: 100,\n+    tags: [],\n+    allergens: [],\n+  });\n+  store.data.batches.push(\n+    { id: 101, itemId: 99, lot: \"NO-EXP-LATE\", qty: 1, receivedOn: \"2026-10-10\", expires: null, location: \"dry\" },\n+    { id: 102, itemId: 99, lot: \"EXP-LATER\", qty: 1, receivedOn: \"2026-10-01\", expires: \"2026-11-10\", location: \"dry\" },\n+    { id: 105, itemId: 99, lot: \"EXP-TIE-HIGH-ID\", qty: 1, receivedOn: \"2026-10-05\", expires: \"2026-11-01\", location: \"dry\" },\n+    { id: 103, itemId: 99, lot: \"EXP-TIE-LOW-ID\", qty: 1, receivedOn: \"2026-10-05\", expires: \"2026-11-01\", location: \"dry\" },\n+    { id: 104, itemId: 99, lot: \"EXP-TIE-EARLIER-RCV\", qty: 1, receivedOn: \"2026-10-02\", expires: \"2026-11-01\", location: \"dry\" },\n+    { id: 100, itemId: 99, lot: \"NO-EXP-EARLY\", qty: 1, receivedOn: \"2026-10-01\", expires: null, location: \"dry\" },\n+  );\n+\n+  const used = consume(store, 99, 6, { at, ref: \"test\" });\n+  assert.deepEqual(\n+    used.map((u) => u.batchId),\n+    [104, 103, 105, 102, 100, 101],\n+  );\n+});\n",
+  "permission_denials": [],
+  "cli_errors": "E1114 04:54:50.613044    3283 telemetry.go:141] error recording trajectory segment analytics: Post \"https://daily-cloudcode-pa.googleapis.com/v1internal:recordTrajectoryAnalytics\": context canceled",
+  "exit": 0,
+  "timed_out": false,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": false,
+  "runner_started": "2026-11-13T18:30:06.666Z",
+  "runner_commit": "b5291fd"
+}
