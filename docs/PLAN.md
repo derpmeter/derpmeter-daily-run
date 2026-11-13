@@ -203,3 +203,4 @@ sh bin/install.sh                           # launchd, 매일 03:30 (로컬 시�
 - Gemini 4 Hydrogen이 11-12 GA. agy 1.5.5 `agy models`에 `gemini-4-hydrogen-{low,medium,high,xhigh}`가 있어 grid.json에 추가했다. 기본값은 High지만 다른 Gemini와 같게 medium으로 고정한다.
 - 11-13 03:30 실행이 도는 중이라 dry run은 하지 않았다(같은 agy 쿼터). 11-14 03:30 실행부터 매일 돈다. 첫 결과에서 모델 해석(wrongModel)과 쿼터 skip을 확인한다.
 - agy 쿼터를 Argon·Carbon·Hydrogen 셋이 나눠 쓴다.
+- 11-13 사용자 지시로 Hydrogen을 정규 실행 직후 따로 돌렸고(run 2026-11-12-2109, 25.0), 사용자 지시로 정규 실행 2026-11-12-1830에 합쳤다: lab_votes의 run을 바꾸고 results 파일을 1830 폴더로 옮겼다(각 JSON의 runner_started·runner_commit은 실제 값 그대로). 과제·채점기는 같고 시각·쿼터 상태만 다르다.
