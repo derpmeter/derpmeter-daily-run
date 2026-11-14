@@ -1,0 +1,58 @@
+{
+  "run": "2026-11-14-1830",
+  "kind": "daily",
+  "day": "2026-11-14",
+  "agent": "gemini-cli",
+  "model": "gemini-4-hydrogen",
+  "effort": "medium",
+  "task": "pymd-slug",
+  "task_version": "32e7cc8d",
+  "cli_version": "1.5.8",
+  "plan": "",
+  "score": 50,
+  "reason": "poor_output",
+  "skipped": null,
+  "duration_ms": 110488,
+  "tokens_input": 54840,
+  "tokens_output": 6120,
+  "tokens_cache_read": 325057,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 3889,
+  "quota_5h_before": 27.747,
+  "quota_5h_after": 27.634,
+  "quota_week_before": 9.705,
+  "quota_week_after": 9.626,
+  "quota_confidence": "ok",
+  "why": "partly done: missed changelog",
+  "grader": "70fce84d",
+  "verdict": "meh",
+  "model_id": "gemini-4-hydrogen-medium",
+  "prompt": "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Fixed `slugify` in `markdown/extensions/toc.py` to strip leading and trailing `separator` characters (so `# Hello world !` produces `id=\"hello-world\"` instead of `hello-world-`), and added a regression test in `tests/test_syntax/extensions/test_toc.py`.",
+    "changed": [
+      "markdown/extensions/toc.py",
+      "tests/test_syntax/extensions/test_toc.py"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": false,
+    "partial": true,
+    "why": "missed changelog"
+  },
+  "changed": [
+    "markdown/extensions/toc.py",
+    "tests/test_syntax/extensions/test_toc.py"
+  ],
+  "diff": "diff --git a/markdown/extensions/toc.py b/markdown/extensions/toc.py\nindex 3cc6481..a4a16da 100644\n--- a/markdown/extensions/toc.py\n+++ b/markdown/extensions/toc.py\n@@ -42,7 +42,7 @@ def slugify(value: str, separator: str, unicode: bool = False) -> str:\n         value = unicodedata.normalize('NFKD', value)\n         value = value.encode('ascii', 'ignore').decode('ascii')\n     value = re.sub(r'[^\\w\\s-]', '', value).lower()\n-    return re.sub(r'[{}\\s]+'.format(separator), separator, value)\n+    return re.sub(r'[{}\\s]+'.format(separator), separator, value).strip(separator)\n \n \n def slugify_unicode(value: str, separator: str) -> str:\ndiff --git a/tests/test_syntax/extensions/test_toc.py b/tests/test_syntax/extensions/test_toc.py\nindex 372ba09..7cedfcb 100644\n--- a/tests/test_syntax/extensions/test_toc.py\n+++ b/tests/test_syntax/extensions/test_toc.py\n@@ -279,6 +279,24 @@ class TestTOC(TestCase):\n             }\n         )\n \n+    def testTrailingAndLeadingPunctuationInID(self):\n+        self.assertMarkdownRenders(\n+            self.dedent(\n+                '''\n+                # Hello world !\n+                # ! Hello world\n+                # Hello world -\n+                '''\n+            ),\n+            self.dedent(\n+                '''\n+                <h1 id=\"hello-world\">Hello world !</h1>\n+                <h1 id=\"hello-world_1\">! Hello world</h1>\n+                <h1 id=\"hello-world_2\">Hello world -</h1>\n+                '''\n+            )\n+        )\n+\n     def testTOCBaseLevel(self):\n         self.assertMarkdownRenders(\n             self.dedent(\n",
+  "permission_denials": [],
+  "cli_errors": "E1115 06:26:50.776214    2698 telemetry.go:141] error recording trajectory segment analytics: Post \"https://daily-cloudcode-pa.googleapis.com/v1internal:recordTrajectoryAnalytics\": context canceled",
+  "exit": 0,
+  "timed_out": false,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": false,
+  "runner_started": "2026-11-14T18:30:06.133Z",
+  "runner_commit": "7cb6575"
+}
