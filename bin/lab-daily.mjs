@@ -40,6 +40,7 @@ import {
   taskVersion,
   wrongModel,
 } from "../lib/lab.mjs";
+import { addToGrid, changelogEntry, prependEntry, probeAnswered, probeCommand, rest } from "../lib/candidates.mjs";
 import {
   checkContext,
   cliCpu,
@@ -137,6 +138,96 @@ if (runTasks.some((t) => t.fixture === "pymd")) {
   if (py.stdout.trim() !== "True") {
     log("python3 on PATH is older than 3.11: pymd chores skipped");
     for (let i = runTasks.length - 1; i >= 0; i--) if (runTasks[i].fixture === "pymd") runTasks.splice(i, 1);
+  }
+}
+// New models approved from DerpMeter's release watch: each is tried in its
+// CLI right before the daily run and joins grid.json from this run when the
+// CLI answers with it (lib/candidates.mjs). Only the full scheduled run.
+const CLI_NAME = { "claude-code": "Claude Code", codex: "OpenAI Codex", "gemini-cli": "Antigravity" };
+if (apply && kind === "daily" && !only.agent && !only.model && !only.task) {
+  const api = rest(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const added = [];
+  try {
+    const pending = await api("lab_candidates?select=model,agent,attempts&status=eq.pending&order=approved_at");
+    let served = null;
+    for (const c of pending) {
+      if (!versions[c.agent] || grid[c.agent]?.models?.includes(c.model)) continue;
+      const efforts = grid[c.agent]?.efforts ?? [];
+      let answered;
+      if (c.agent === "gemini-cli") {
+        served ??= new Set((await exec(BIN["gemini-cli"], ["models"], { timeoutSec: 60 })).stdout.split("\n").map((l) => l.split(/\s/)[0]));
+        answered = probeAnswered(c.agent, c.model, {}, served, efforts);
+      } else {
+        const [cmd, argv] = probeCommand(c.agent, c.model, bins);
+        const scratchDir = await mkdtemp(join(tmpdir(), "derpmeter-probe-"));
+        const r = await exec(cmd, argv, { cwd: scratchDir, timeoutSec: 180 });
+        await rm(scratchDir, { recursive: true, force: true });
+        answered = probeAnswered(c.agent, c.model, r);
+      }
+      const now = new Date().toISOString();
+      if (!answered) {
+        const attempts = c.attempts + 1;
+        await api(`lab_candidates?model=eq.${encodeURIComponent(c.model)}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            attempts,
+            last_tried: now,
+            // Two weeks of daily tries: the CLI does not serve it.
+            status: attempts >= 14 ? "unsupported" : "pending",
+            note: `${CLI_NAME[c.agent]} ${versions[c.agent]} did not answer with it`,
+          }),
+        });
+        log(`candidate ${c.model}: ${CLI_NAME[c.agent]} did not answer (try ${attempts})`);
+        continue;
+      }
+      const [draft] = await api(`release_drafts?select=title&id=eq.${encodeURIComponent(c.model)}`).catch(() => []);
+      const title = draft?.title ?? c.model;
+      addToGrid(grid, c.agent, c.model);
+      for (const effort of efforts.length ? efforts : [""]) cells.push({ agent: c.agent, model: c.model, effort });
+      const entry = changelogEntry({ date: day, title, model: c.model, agent: c.agent, cli: CLI_NAME[c.agent], version: versions[c.agent], run, efforts });
+      const logFile = join(root, "docs/CHANGELOG.md");
+      await writeFile(logFile, prependEntry(await readFile(logFile, "utf8"), entry.text));
+      await api("lab_changes?on_conflict=id", {
+        method: "POST",
+        headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+        body: JSON.stringify({
+          id: `add-${c.model}`.replace(/\./g, "-").slice(0, 60),
+          run,
+          kind: "model",
+          agent: c.agent,
+          model: c.model,
+          title: `${title} added`,
+          detail: `Added automatically: ${CLI_NAME[c.agent]} ${versions[c.agent]} answered it right before this run, its first.`,
+          regraded: false,
+          source_url: `https://github.com/derpmeter/derpmeter-daily-run/blob/main/docs/CHANGELOG.md#${entry.anchor}`,
+        }),
+      });
+      await api(`lab_candidates?model=eq.${encodeURIComponent(c.model)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "added", attempts: c.attempts + 1, last_tried: now, run, note: null }),
+      });
+      added.push(c.model);
+      log(`candidate ${c.model}: added to the grid from this run`);
+    }
+  } catch (e) {
+    log(`candidates: ${e.message}`);
+  }
+  if (added.length) {
+    await writeFile(join(root, "grid.json"), `${JSON.stringify(grid, null, 2)}\n`);
+    if (publish) {
+      const git = (...a) => exec("git", a, { cwd: root, timeoutSec: 120 });
+      for (const step of [
+        ["add", "grid.json", "docs/CHANGELOG.md"],
+        ["commit", "-q", "-m", `grid: add ${added.join(", ")} (approved, CLI answered)`],
+        ["push", "-q", "origin", "main"],
+      ]) {
+        const r = await git(...step);
+        if (r.code !== 0) {
+          log(`git ${step[0]} failed: ${r.stdout.slice(-300)}`);
+          break;
+        }
+      }
+    }
   }
 }
 // Antigravity lists the model ids it serves to this account.

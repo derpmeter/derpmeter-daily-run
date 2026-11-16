@@ -32,6 +32,8 @@
 
 Antigravity는 모델 id에 effort가 들어 있고, effort 없는 id는 사용자 설정으로 조용히 바뀝니다. 그래서 Gemini 모델은 `gemini-4-*-medium`으로 고정합니다. CLI가 요청한 것과 다른 모델로 답하면 그 실행은 투표 없이 건너뜁니다. 결과 파일과 id에서 Antigravity는 `gemini-cli`로 표기됩니다.
 
+**새 모델.** DerpMeter는 각 회사의 공식 모델 페이지를 감시합니다. 새로 찾은 모델을 관리자가 승인하면, 러너가 다음 daily 실행(03:30 KST, 18:30 UTC) 직전에 그 모델을 CLI로 시험합니다. CLI가 그 모델로 답하면 그 실행부터 `grid.json`에 들어가고 [변경 기록](docs/CHANGELOG.md)에 남습니다. CLI가 아직 지원하지 않으면 2주 동안 매 실행 전에 다시 시험합니다.
+
 ## 픽스처
 
 | 픽스처 | 내용 | 규모 |
