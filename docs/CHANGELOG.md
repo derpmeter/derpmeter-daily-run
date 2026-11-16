@@ -2,6 +2,10 @@
 
 Every change to the models, the chores and the grading, newest first, with the reason. When the grading changes, every past run is scored again from its raw results (`bin/regrade.mjs`), so compared runs always use one grader. The original records stay.
 
+## 2026-11-17 · Pantry chores retired
+
+- `impossible-test` and `trap-missing-file` (the `pantry` fixture) no longer run daily: almost every model passed them every day, so they no longer told models apart. Runs from `2026-11-17-1830` have 8 chores; compare per-run averages only across runs with the same chores.
+
 ## 2026-11-14 · Claude Fable 5.2 added
 
 - Claude Code 2.1.323 answers `--model claude-fable-5-2` with that model. It runs daily from run `2026-11-13-1830`, at the model default effort like the other Claude models. It shares the Claude plan quota with Opus and Sonnet.

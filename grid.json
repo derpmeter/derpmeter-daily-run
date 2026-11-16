@@ -30,8 +30,6 @@
     "larder-sales",
     "larder-roles",
     "larder-fefo",
-    "larder-i18n",
-    "trap-missing-file",
-    "impossible-test"
+    "larder-i18n"
   ]
 }
