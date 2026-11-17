@@ -97,13 +97,31 @@ Antigravity는 모델 id에 effort가 들어 있고, effort 없는 id는 사용�
 - Codex: `--ignore-user-config --ephemeral`.
 - Antigravity는 개인 규칙을 끄는 옵션이 없어 `~/.gemini/GEMINI.md`를 읽습니다. 그 파일이 있으면 결과에 `isolated: false`로 남깁니다. 실행이 끝나면 그 대화 파일을 지웁니다.
 
+## 실행 환경
+
+모든 실행은 관리자의 컴퓨터 한 대에서, 관리자 본인의 구독으로 돌립니다.
+
+| | |
+| --- | --- |
+| 기기 | Mac mini (2023), Apple M2 Pro: 10코어 CPU(성능 6, 효율 4), 메모리 16GB, SSD 512GB |
+| OS와 런타임 | macOS 26.2, Node 26, Python 3.13 |
+| 일정 | launchd, 매일 03:30 KST(18:30 UTC). 에이전트끼리는 동시에, 한 에이전트 안에서는 잡일을 하나씩 |
+
+| 에이전트 | 요금제 |
+| --- | --- |
+| Claude Code | Claude Max 5x |
+| Codex | ChatGPT Plus |
+| Antigravity | Google AI Ultra (한국 월 10만 원 요금제) |
+
+잡일당 시간은 이 기기와 각 요금제의 한도에 따라 달라지므로, 여기 실행끼리 비교하고 다른 환경과는 비교하지 마세요. Claude Code와 Codex는 요금제를 알려 주므로 투표마다 함께 기록됩니다(Antigravity는 알려 주지 않습니다).
+
 ## 기록하는 것
 
 실행마다 `results/<run>/<agent>/<model>[@effort]/<chore>.json`에 투표와 이유, 보고, 확인 결과, 바뀐 파일, diff, 프롬프트, CLI 버전, 요금제, 토큰, 쿼터를 남깁니다. 로컬 경로, 사용자 이름, 이메일 주소는 지웁니다. `<run>`은 UTC 시작 시각(`2026-11-13-1830`)이고, 실행 폴더마다 점수를 정리한 `README.md`가 있습니다.
 
 - **토큰:** 입력, 출력, 캐시 읽기·쓰기, 추론. 각 CLI가 보고하는 그대로입니다.
 - **쿼터:** 요금제의 5시간·주간 한도 사용률(%)을 실행 전후로 기록합니다. Claude Code와 Codex는 정수 퍼센트로 알려 주므로, 잡일 하나로는 변화가 0으로 나오는 일이 많습니다.
-- **계정:** 관리자 본인의 구독 계정으로 돌립니다. 실행 중에 같은 CLI의 다른 프로세스가 바빴으면 그 실행의 쿼터는 `low`로 표시합니다.
+- **계정:** 관리자 본인의 구독 계정으로 돌립니다([실행 환경](#실행-환경) 참고). 실행 중에 같은 CLI의 다른 프로세스가 바빴으면 그 실행의 쿼터는 `low`로 표시합니다.
 
 투표, 토큰, 쿼터는 DerpMeter 데이터베이스에도 저장되어 [derpmeter.com/lab/daily](https://derpmeter.com/lab/daily)에 보입니다. Daily Run 투표는 개발자들의 투표로 매기는 공개 Derp Score에 **절대 섞이지 않습니다.**
 

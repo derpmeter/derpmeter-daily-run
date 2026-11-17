@@ -95,13 +95,31 @@ The reasons are DerpMeter's vote reasons, and the score is the mean vote (Smart 
 - Codex: `--ignore-user-config --ephemeral`.
 - Antigravity has no switch for personal rules and reads `~/.gemini/GEMINI.md`; results record `isolated: false` when that file exists. The run's conversation files are deleted afterwards.
 
+## Where it runs
+
+Every run happens on one machine, the maintainer's, with the maintainer's own subscriptions.
+
+| | |
+| --- | --- |
+| Machine | Mac mini (2023), Apple M2 Pro: 10-core CPU (6 performance, 4 efficiency), 16 GB memory, 512 GB SSD |
+| OS and runtimes | macOS 26.2, Node 26, Python 3.13 |
+| Schedule | launchd, daily at 03:30 KST (18:30 UTC); agents side by side, one chore at a time per agent |
+
+| Agent | Plan |
+| --- | --- |
+| Claude Code | Claude Max 5x |
+| Codex | ChatGPT Plus |
+| Antigravity | Google AI Ultra (the ₩100,000 a month plan in Korea) |
+
+Time per chore depends on this machine and on these plans' limits, so compare times between runs here, not with other setups. Claude Code and Codex also report their plan, which is recorded with every vote (Antigravity does not report one).
+
 ## What is recorded
 
 For every run, `results/<run>/<agent>/<model>[@effort]/<chore>.json` holds the vote and why, the report, the check, the changed files, the diff, the prompt, the CLI version, the plan, tokens and quota. Local paths, user names and e-mail addresses are removed. `<run>` is the UTC start time (`2026-11-13-1830`); each run folder has a `README.md` with its scores.
 
 - **Tokens:** input, output, cache read and write, and reasoning, as each CLI reports them.
 - **Quota:** percent used of the plan's 5-hour and weekly windows, before and after each run. Claude Code and Codex report whole percents, so one chore often shows no change.
-- **Accounts:** the runs use the maintainer's own subscriptions. If another process of the same CLI was busy during a run, its quota reading is marked `low`.
+- **Accounts:** the runs use the maintainer's own subscriptions (see [Where it runs](#where-it-runs)). If another process of the same CLI was busy during a run, its quota reading is marked `low`.
 
 The votes, tokens and quota are also stored in DerpMeter's database and shown at [derpmeter.com/lab/daily](https://derpmeter.com/lab/daily). Daily Run votes are **never** part of the public Derp Score, which comes from developers' own votes.
 
