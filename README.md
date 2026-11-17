@@ -103,6 +103,7 @@ Every run happens on one machine, the maintainer's, with the maintainer's own su
 | --- | --- |
 | Machine | Mac mini (2023), Apple M2 Pro: 10-core CPU (6 performance, 4 efficiency), 16 GB memory, 512 GB SSD |
 | OS and runtimes | macOS 26.2, Node 26, Python 3.13 |
+| Network | Wired Ethernet (1 Gbps link) on home broadband in South Korea. Measured 2026-11-17 with macOS `networkQuality`: about 430 Mbps down and 435 Mbps up, 8 ms idle latency; connecting to the API hosts took 14 ms (OpenAI), 39 ms (Anthropic) and 51 ms (Google) |
 | Schedule | launchd, daily at 03:30 KST (18:30 UTC); agents side by side, one chore at a time per agent |
 
 | Agent | Plan |

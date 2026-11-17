@@ -105,6 +105,7 @@ Antigravity는 모델 id에 effort가 들어 있고, effort 없는 id는 사용�
 | --- | --- |
 | 기기 | Mac mini (2023), Apple M2 Pro: 10코어 CPU(성능 6, 효율 4), 메모리 16GB, SSD 512GB |
 | OS와 런타임 | macOS 26.2, Node 26, Python 3.13 |
+| 네트워크 | 유선 이더넷(1Gbps 링크), 한국 가정용 인터넷. 2026-11-17 macOS `networkQuality` 측정: 다운로드 약 430Mbps, 업로드 약 435Mbps, 유휴 지연 8ms. API 서버 연결 시간은 OpenAI 14ms, Anthropic 39ms, Google 51ms |
 | 일정 | launchd, 매일 03:30 KST(18:30 UTC). 에이전트끼리는 동시에, 한 에이전트 안에서는 잡일을 하나씩 |
 
 | 에이전트 | 요금제 |
