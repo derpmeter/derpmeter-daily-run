@@ -4,7 +4,7 @@
 
 Every day, the same coding-agent models get the same small chores in a fresh copy of the same projects. Each result becomes one **Smart / Meh / Dumb** vote, the way a developer votes on [DerpMeter](https://derpmeter.com) after a day of work.
 
-**See the results:** [derpmeter.com/lab/daily](https://derpmeter.com/lab/daily) (scores, trends per model, every vote, token use and quota per run).
+**See the results:** [derpmeter.com/run/daily](https://derpmeter.com/run/daily) (scores, trends per model, every vote, token use and quota per run).
 
 This is **not a benchmark**. There is no leaderboard, no difficulty ladder and no claim about which model is smartest. The chores are things a coding agent should not get wrong, and the only question is: *did this model get dumber than it was last week?*
 
@@ -122,7 +122,7 @@ For every run, `results/<run>/<agent>/<model>[@effort]/<chore>.json` holds the v
 - **Quota:** percent used of the plan's 5-hour and weekly windows, before and after each run. Claude Code and Codex report whole percents, so one chore often shows no change.
 - **Accounts:** the runs use the maintainer's own subscriptions (see [Where it runs](#where-it-runs)). If another process of the same CLI was busy during a run, its quota reading is marked `low`.
 
-The votes, tokens and quota are also stored in DerpMeter's database and shown at [derpmeter.com/lab/daily](https://derpmeter.com/lab/daily). Daily Run votes are **never** part of the public Derp Score, which comes from developers' own votes.
+The votes, tokens and quota are also stored in DerpMeter's database and shown at [derpmeter.com/run/daily](https://derpmeter.com/run/daily). Daily Run votes are **never** part of the public Derp Score, which comes from developers' own votes.
 
 ## Running it yourself
 
@@ -142,7 +142,7 @@ Agents run side by side; each agent's runs go one at a time so a quota reading c
 ## Links
 
 - [DerpMeter](https://derpmeter.com): how dumb is your AI today? Developers vote Smart, Meh or Dumb on the model they used.
-- [Daily Run](https://derpmeter.com/lab/daily): the results of this repository.
+- [Daily Run](https://derpmeter.com/run/daily): the results of this repository.
 - [`derpmeter` CLI](https://github.com/derpmeter/derpmeter-cli) and [menu bar app](https://github.com/derpmeter/derpmeter-menubar): vote from your terminal or Mac.
 
 ## License

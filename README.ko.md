@@ -6,7 +6,7 @@
 
 매일 같은 코딩 에이전트 모델들에게 같은 프로젝트의 새 복사본에서 같은 잡일을 시킵니다. 결과 하나하나가 **Smart / Meh / Dumb** 투표 한 표가 됩니다. 개발자가 하루 일하고 [DerpMeter](https://derpmeter.com)에 투표하는 것과 같은 방식입니다.
 
-**결과 보기:** [derpmeter.com/lab/daily](https://derpmeter.com/lab/daily). 모델별 점수와 추이, 모든 투표, 실행별 토큰과 쿼터 사용량을 볼 수 있습니다.
+**결과 보기:** [derpmeter.com/run/daily](https://derpmeter.com/run/daily). 모델별 점수와 추이, 모든 투표, 실행별 토큰과 쿼터 사용량을 볼 수 있습니다.
 
 **벤치마크가 아닙니다.** 순위표도, 난이도 사다리도 없고 어느 모델이 가장 똑똑한지도 말하지 않습니다. 잡일은 코딩 에이전트라면 틀리지 말아야 할 것들이고, 묻는 것은 하나입니다. *이 모델이 지난주보다 멍청해졌나?*
 
@@ -124,7 +124,7 @@ Antigravity는 모델 id에 effort가 들어 있고, effort 없는 id는 사용�
 - **쿼터:** 요금제의 5시간·주간 한도 사용률(%)을 실행 전후로 기록합니다. Claude Code와 Codex는 정수 퍼센트로 알려 주므로, 잡일 하나로는 변화가 0으로 나오는 일이 많습니다.
 - **계정:** 관리자 본인의 구독 계정으로 돌립니다([실행 환경](#실행-환경) 참고). 실행 중에 같은 CLI의 다른 프로세스가 바빴으면 그 실행의 쿼터는 `low`로 표시합니다.
 
-투표, 토큰, 쿼터는 DerpMeter 데이터베이스에도 저장되어 [derpmeter.com/lab/daily](https://derpmeter.com/lab/daily)에 보입니다. Daily Run 투표는 개발자들의 투표로 매기는 공개 Derp Score에 **절대 섞이지 않습니다.**
+투표, 토큰, 쿼터는 DerpMeter 데이터베이스에도 저장되어 [derpmeter.com/run/daily](https://derpmeter.com/run/daily)에 보입니다. Daily Run 투표는 개발자들의 투표로 매기는 공개 Derp Score에 **절대 섞이지 않습니다.**
 
 ## 직접 돌려 보기
 
@@ -144,7 +144,7 @@ node bin/lab-daily.mjs --model gpt-6.1-sol --task larder-fefo --keep
 ## 링크
 
 - [DerpMeter](https://derpmeter.com): 오늘 당신의 AI는 얼마나 멍청한가요? 개발자들이 쓴 모델에 Smart, Meh, Dumb으로 투표합니다.
-- [Daily Run](https://derpmeter.com/lab/daily): 이 저장소의 결과.
+- [Daily Run](https://derpmeter.com/run/daily): 이 저장소의 결과.
 - [`derpmeter` CLI](https://github.com/derpmeter/derpmeter-cli)와 [메뉴바 앱](https://github.com/derpmeter/derpmeter-menubar): 터미널이나 Mac에서 투표하기.
 
 ## 라이선스

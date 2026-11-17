@@ -465,7 +465,7 @@ for (const r of results) {
 const lines = [
   `# DerpMeter Daily Run ${run}`,
   "",
-  `Results on the site: https://derpmeter.com/lab/daily/runs/${run}`,
+  `Results on the site: https://derpmeter.com/run/daily/runs/${run}`,
   "",
   `Kind: ${kind}. Started ${started.toISOString()}, runner ${runnerCommit}. Score = mean of the Lab's votes (Smart 0, Meh 50, Dumb 100).`,
   "",
