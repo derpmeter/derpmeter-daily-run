@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addToGrid, changelogEntry, prependEntry, probeAnswered, probeCommand } from "../lib/candidates.mjs";
+import { addToGrid, changelogEntry, modelName, prependEntry, probeAnswered, probeCommand, replaceInGrid } from "../lib/candidates.mjs";
 
 test("a candidate joins only when its CLI answers with that model", () => {
   const claude = (models, extra = {}) => ({
@@ -31,4 +31,19 @@ test("the grid, the changelog entry and its place", () => {
   assert.match(e.text, /^## 2026-11-18 · GPT-6\.2 Sol added\n\n- Added automatically: OpenAI Codex 0\.170\.0 answered `gpt-6\.2-sol`/);
   const log = "# Changelog\n\nIntro.\n\n## 2026-11-17 · Old\n\n- x\n";
   assert.equal(prependEntry(log, "## New\n\n- y\n"), "# Changelog\n\nIntro.\n\n## New\n\n- y\n\n## 2026-11-17 · Old\n\n- x\n");
+});
+
+test("a model update takes the older model's place in the grid", () => {
+  const grid = { codex: { models: ["gpt-6.1-sol", "gpt-6.1-terra"] } };
+  assert.equal(replaceInGrid(grid, "codex", "gpt-6.2-sol", "gpt-6.1-sol"), true);
+  assert.deepEqual(grid.codex.models, ["gpt-6.2-sol", "gpt-6.1-terra"]);
+  // The older one is not in the grid: nothing replaced (the runner adds it).
+  assert.equal(replaceInGrid(grid, "codex", "gpt-6.2-astra", "gpt-6-astra"), false);
+  assert.equal(replaceInGrid(grid, "codex", "gpt-6.2-astra", null), false);
+  assert.equal(modelName("gpt-6.1-sol"), "GPT-6.1 Sol");
+  assert.equal(modelName("claude-opus-5-5"), "Claude Opus 5.5");
+  assert.equal(modelName("gemini-4-argon"), "Gemini 4 Argon");
+  const e = changelogEntry({ date: "2026-11-18", title: "GPT-6.2 Sol", model: "gpt-6.2-sol", agent: "codex", cli: "OpenAI Codex", version: "0.163.0", run: "2026-11-18-1830", replaces: "gpt-6.1-sol" });
+  assert.match(e.text, /^## 2026-11-18 · GPT-6\.1 Sol → GPT-6\.2 Sol\n\n- Model update, automatically:/);
+  assert.equal(e.anchor, "2026-11-18--gpt-61-sol--gpt-62-sol");
 });

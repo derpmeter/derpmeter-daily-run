@@ -44,7 +44,7 @@ import {
   taskVersion,
   wrongModel,
 } from "../lib/lab.mjs";
-import { addToGrid, changelogEntry, prependEntry, probeAnswered, probeCommand, rest } from "../lib/candidates.mjs";
+import { addToGrid, changelogEntry, modelName, prependEntry, probeAnswered, probeCommand, replaceInGrid, rest } from "../lib/candidates.mjs";
 import {
   checkContext,
   cliCpu,
@@ -152,7 +152,7 @@ if (apply && kind === "daily" && !only.agent && !only.model && !only.task) {
   const api = rest(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   const added = [];
   try {
-    const pending = await api("lab_candidates?select=model,agent,attempts&status=eq.pending&order=approved_at");
+    const pending = await api("lab_candidates?select=model,agent,attempts,replaces&status=eq.pending&order=approved_at");
     let served = null;
     for (const c of pending) {
       if (!versions[c.agent] || grid[c.agent]?.models?.includes(c.model)) continue;
@@ -185,23 +185,29 @@ if (apply && kind === "daily" && !only.agent && !only.model && !only.task) {
         continue;
       }
       const [draft] = await api(`release_drafts?select=title&id=eq.${encodeURIComponent(c.model)}`).catch(() => []);
-      const title = draft?.title ?? c.model;
-      addToGrid(grid, c.agent, c.model);
+      const title = draft?.title ?? modelName(c.model);
+      // A model update takes the older model's place; otherwise it is added.
+      const replaced = replaceInGrid(grid, c.agent, c.model, c.replaces) ? c.replaces : null;
+      if (replaced) cells = cells.filter((x) => !(x.agent === c.agent && x.model === replaced));
+      else addToGrid(grid, c.agent, c.model);
       for (const effort of efforts.length ? efforts : [""]) cells.push({ agent: c.agent, model: c.model, effort });
-      const entry = changelogEntry({ date: day, title, model: c.model, agent: c.agent, cli: CLI_NAME[c.agent], version: versions[c.agent], run, efforts });
+      const entry = changelogEntry({ date: day, title, model: c.model, agent: c.agent, cli: CLI_NAME[c.agent], version: versions[c.agent], run, efforts, replaces: replaced });
       const logFile = join(root, "docs/CHANGELOG.md");
       await writeFile(logFile, prependEntry(await readFile(logFile, "utf8"), entry.text));
       await api("lab_changes?on_conflict=id", {
         method: "POST",
         headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
         body: JSON.stringify({
-          id: `add-${c.model}`.replace(/\./g, "-").slice(0, 60),
+          id: `${replaced ? "update" : "add"}-${c.model}`.replace(/\./g, "-").slice(0, 60),
           run,
-          kind: "model",
+          kind: replaced ? "update" : "model",
           agent: c.agent,
           model: c.model,
-          title: `${title} added`,
-          detail: `Added automatically: ${CLI_NAME[c.agent]} ${versions[c.agent]} answered it right before this run, its first.`,
+          replaces: replaced,
+          title: replaced ? `${modelName(replaced)} → ${title}` : `${title} added`,
+          detail: replaced
+            ? `${CLI_NAME[c.agent]} ${versions[c.agent]} answered it right before this run, so it takes the place of ${modelName(replaced)} from here. One line on the charts; every vote keeps the model that ran it.`
+            : `Added automatically: ${CLI_NAME[c.agent]} ${versions[c.agent]} answered it right before this run, its first.`,
           regraded: false,
           source_url: `https://github.com/derpmeter/derpmeter-daily-run/blob/main/docs/CHANGELOG.md#${entry.anchor}`,
         }),
@@ -211,7 +217,7 @@ if (apply && kind === "daily" && !only.agent && !only.model && !only.task) {
         body: JSON.stringify({ status: "added", attempts: c.attempts + 1, last_tried: now, run, note: null }),
       });
       added.push(c.model);
-      log(`candidate ${c.model}: added to the grid from this run`);
+      log(`candidate ${c.model}: ${replaced ? `replaces ${replaced}` : "added to the grid"} from this run`);
     }
   } catch (e) {
     log(`candidates: ${e.message}`);
