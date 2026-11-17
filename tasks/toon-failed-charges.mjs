@@ -29,7 +29,7 @@ const task = {
     ].join("\n"),
     "On the Settings page, under the credit balance, show this history: when, what it was for, and the amount, with refunds marked as refunds. Both languages.",
   ],
-  budgetSec: 990,
+  budgetSec: 1330,
   allowed: ["backend/app/", "backend/tests/", "frontend/src/", "frontend/messages/", "docs/", "CHANGELOG.md"],
   forbidden: [],
   async setup(ctx) {

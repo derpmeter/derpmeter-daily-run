@@ -60,7 +60,7 @@ const task = {
     ].join("\n"),
     "In the editor, after an export that left out cuts, tell the user which cut numbers are missing. Both languages.",
   ],
-  budgetSec: 490,
+  budgetSec: 680,
   allowed: ["backend/app/", "backend/tests/", "frontend/src/", "frontend/messages/", "docs/", "CHANGELOG.md"],
   forbidden: [],
   async setup(ctx) {
