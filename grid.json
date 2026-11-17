@@ -30,6 +30,9 @@
     "larder-sales",
     "larder-roles",
     "larder-fefo",
-    "larder-i18n"
+    "larder-i18n",
+    "toon-episode-copy",
+    "toon-failed-charges",
+    "toon-image-fetch"
   ]
 }

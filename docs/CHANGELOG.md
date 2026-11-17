@@ -2,6 +2,19 @@
 
 Every change to the models, the chores and the grading, newest first, with the reason. When the grading changes, every past run is scored again from its raw results (`bin/regrade.mjs`), so compared runs always use one grader. The original records stay.
 
+## 2026-11-17 · Three Toonify chores, with follow-up requests
+
+- New fixture `toonify`: [Toonify](https://github.com/workromancer/toonify.workromancer.ai) (MIT) at commit `6fee8dd`, a FastAPI + Next.js webtoon studio. Images, deployment files and a stored credentials file were removed. Backend tests run offline on SQLite with in-memory fakes for MinIO and Gemini; dependencies are installed once outside the runs (`bin/toonify-deps.sh`, pinned to a January 2026 lock) and linked into each copy, so runs need no network. A run whose dependencies are missing skips these chores.
+- Three chores, each a request followed by two follow-up requests in the same agent session. Only the final state is checked, and the first request's rules that the follow-ups did not change must still hold:
+  - `toon-episode-copy`: duplicate an episode (API, Episodes page, both languages); then keep episode order dense; then restore a deleted episode, with Undo on the page.
+  - `toon-failed-charges`: stop charging for failed AI calls on every paid route, background jobs included; then a credit history API; then that history on the Settings page. Charging only on success counts the same as refunding.
+  - `toon-image-fetch`: stop the backend requesting image URLs a user can set (an SSRF hole) everywhere; then report the cuts an export left out; then tell the user in the editor.
+- Every check fails on the untouched fixture and passes a reference solution of all turns (`test/toonify.test.mjs`). Keys a fixture file already used without a message are not counted against the agent, and a plural argument that only picks a branch may be left out of a language without plural forms.
+- Budgets: 2.5× the median of trial runs on 2026-11-17 (Claude, Codex and Gemini Argon): 1080 s, 990 s and 490 s for the three chores together with their follow-ups.
+- Runner: a chore may carry follow-up requests. Each one resumes the same CLI session (Claude Code `--resume`, Codex `exec resume`, Antigravity `--conversation`); the budget and the hard cap cover all turns together, tokens are summed, and the result records `follow_ups` and how many `turns` ran. A turn that ends with an error, at the cap or without a session ends the run there. Sessions are kept only until the run ends, then deleted like before.
+- `lib/toonify.mjs` joins the grader libraries, so every past run was regraded; the existing chores' checks did not change.
+- Runs from `2026-11-17-1830` have 11 chores. Compare per-run averages only across runs with the same chores. The first days of a new chore can be unstable.
+
 ## 2026-11-17 · Pantry chores retired
 
 - `impossible-test` and `trap-missing-file` (the `pantry` fixture) no longer run daily: almost every model passed them every day, so they no longer told models apart. Runs from `2026-11-17-1830` have 8 chores; compare per-run averages only across runs with the same chores.

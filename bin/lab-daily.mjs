@@ -10,6 +10,7 @@
 // commits its raw results to results/<run>/ on branch results/<run>, merged
 // into main. "daily" runs (launchd) make the weekly series; "tuning" runs
 // are difficulty experiments. Default is a dry run. How it works: README.md.
+import { depsReady } from "../lib/toonify.mjs";
 import { existsSync } from "node:fs";
 import { appendFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
@@ -36,6 +37,9 @@ import {
   claudeQuota,
   promptFor,
   resultPath,
+  sessionOf,
+  sumUsage,
+  turnsFor,
   sanitize,
   taskVersion,
   wrongModel,
@@ -230,6 +234,11 @@ if (apply && kind === "daily" && !only.agent && !only.model && !only.task) {
     }
   }
 }
+// Toonify chores link dependencies installed by bin/toonify-deps.sh.
+if (runTasks.some((t) => t.fixture === "toonify") && !depsReady()) {
+  log("Toonify dependencies missing (sh bin/toonify-deps.sh): toonify chores skipped");
+  for (let i = runTasks.length - 1; i >= 0; i--) if (runTasks[i].fixture === "toonify") runTasks.splice(i, 1);
+}
 // Antigravity lists the model ids it serves to this account.
 if (cells.some((c) => c.agent === "gemini-cli")) {
   const m = await exec(BIN["gemini-cli"], ["models"], { timeoutSec: 60 });
@@ -277,21 +286,42 @@ async function runOne(cell, task) {
   const lastFile = join(scratch, `${relative(scratch, dir)}.last.txt`);
   const logFile = join(scratch, `${relative(scratch, dir)}.agent.log`);
   const cap = capSec(task);
-  const [cmd, argv] = agentCommand(cell.agent, {
-    model: cell.model,
-    effort: cell.effort,
-    prompt: promptFor(task),
-    schemaFile,
-    lastFile,
-    logFile,
-    capSec: cap,
-    bins,
-  });
+  const turns = turnsFor(task);
   const before = lastQuota[cell.agent] ?? (lastQuota[cell.agent] = await readQuota(cell.agent, bins));
   const cpuBefore = await cliCpu(cell.agent);
-  const res = await exec(cmd, argv, { cwd: dir, timeoutSec: cap + 15 });
-  // A CLI that stops itself at the cap (agy --print-timeout) was stuck too.
-  if (res.ms >= cap * 1000) res.timedOut = true;
+  // One request, or the request and its follow-ups in the same session; the
+  // cap and the budget hold for all of them together. A turn that ends
+  // without a session, with an error or at the cap ends the run there.
+  let res = null;
+  let session = null;
+  let ms = 0;
+  const outputs = [];
+  const usages = [];
+  for (const [i, prompt] of turns.entries()) {
+    const left = Math.max(1, cap - Math.round(ms / 1000));
+    const [cmd, argv] = agentCommand(cell.agent, {
+      model: cell.model,
+      effort: cell.effort,
+      prompt,
+      schemaFile,
+      lastFile,
+      logFile,
+      capSec: left,
+      bins,
+      resume: session ?? "",
+      keepSession: turns.length > 1,
+    });
+    if (i > 0) await rm(lastFile, { force: true });
+    res = await exec(cmd, argv, { cwd: dir, timeoutSec: left + 15 });
+    ms += res.ms;
+    outputs.push(res.stdout);
+    usages.push(parseUsage(cell.agent, res.stdout));
+    session ??= sessionOf(cell.agent, res.stdout);
+    // A CLI that stops itself at the cap (agy --print-timeout) was stuck too.
+    if (ms >= cap * 1000) res.timedOut = true;
+    if (res.timedOut || res.code !== 0 || !session) break;
+  }
+  res = { ...res, ms };
   const cpuAfter = await cliCpu(cell.agent);
   const after =
     cell.agent === "claude-code" ? (claudeQuota(res.stdout) ?? null) : await readQuota(cell.agent, bins);
@@ -299,13 +329,13 @@ async function runOne(cell, task) {
   const last = existsSync(lastFile) ? await readFile(lastFile, "utf8") : "";
   const agentLog = existsSync(logFile) ? (await readFile(logFile, "utf8")).slice(-20_000) : "";
   const report = parseReport(cell.agent, res.stdout, last);
-  const usage = parseUsage(cell.agent, res.stdout);
+  const usage = sumUsage(usages);
   const changed = changedFiles((await git("status", "--porcelain", "--untracked-files=all")).stdout);
   const diff = (await git("diff", "--no-color")).stdout + (await git("diff", "--no-color", "--cached")).stdout;
   await git("add", "-A");
   const fullDiff = (await git("diff", "--no-color", "--cached", "HEAD")).stdout;
   // Kept with the raw result so a later grader can classify it again.
-  const errors = cliErrors(cell.agent, res.stdout, agentLog, promptFor(task));
+  const errors = cliErrors(cell.agent, outputs.join("\n"), agentLog, promptFor(task));
   const skipped = wrongModel(cell.agent, agentLog, modelId(cell))
     ? "crash"
     : classifyFailure({ code: res.code, output: errors, report, timedOut: res.timedOut });
@@ -351,6 +381,7 @@ async function runOne(cell, task) {
       why: vote.why,
       model_id: modelId(cell),
       prompt: promptFor(task),
+      ...(task.followUps ? { follow_ups: task.followUps, turns: outputs.length } : {}),
       report,
       check,
       changed,
@@ -375,7 +406,7 @@ async function runOne(cell, task) {
   // --keep is for diagnosis: the copy, the agent log and the agent's own
   // session stay on disk (clean up afterwards with a normal run's sweep).
   if (!keep) {
-    await forgetRun(cell.agent, { dir, stdout: res.stdout });
+    await forgetRun(cell.agent, { dir, stdout: res.stdout, session });
     await rm(dir, { recursive: true, force: true });
   } else log(`  kept: ${dir} (agent log ${logFile})`);
   return { row, vote };

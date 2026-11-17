@@ -1,0 +1,369 @@
+@import "tailwindcss";
+
+/* ===== Custom Breakpoints =====
+ * Desktop:      ≥1440px (--breakpoint-desktop)
+ * Tablet:       ≥1024px (--breakpoint-tablet)
+ * Mobile:       ≤768px  (--breakpoint-mobile)
+ * Small Mobile: ≤375px  (--breakpoint-sm-mobile)
+ */
+
+@theme inline {
+  /* Custom Breakpoints for Tailwind v4 */
+  --breakpoint-sm-mobile: 375px;
+  --breakpoint-mobile: 768px;
+  --breakpoint-tablet: 1024px;
+  --breakpoint-desktop: 1440px;
+
+  /* Colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-display: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --color-primary: #3713ec;
+  --color-primary-foreground: #ffffff;
+  --color-background-light: #1e1b2e;
+  --color-background-dark: #13111c;
+  --color-glass: rgba(255, 255, 255, 0.05);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+}
+
+:root {
+  --background: #13111c;
+  --foreground: #ffffff;
+
+  /* Layout Variables - Desktop default */
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 64px;
+  --nav-height: 64px;
+  --content-max-width: 1400px;
+  --touch-target-min: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #13111c;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+  overflow-x: hidden;
+  word-break: keep-all; /* Korean word-boundary line breaks */
+  overflow-wrap: break-word; /* Fallback for long words */
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ===== Responsive Typography & Layout System =====
+ * Desktop (≥1440px): Full layout + sidebar, standard typography
+ * Tablet (≥1024px, <1440px): Collapsed sidebar, slightly reduced typography
+ * Mobile (≤768px): Stacked layout, mobile-optimized typography
+ * Small mobile (≤375px): Enhanced readability, minimal UI
+ */
+
+/* ===== Desktop Default (≥1440px) ===== */
+:root {
+  /* Typography Scale - Desktop */
+  --font-size-xs: 0.75rem;    /* 12px */
+  --font-size-sm: 0.875rem;   /* 14px */
+  --font-size-base: 1rem;     /* 16px */
+  --font-size-lg: 1.125rem;   /* 18px */
+  --font-size-xl: 1.25rem;    /* 20px */
+  --font-size-2xl: 1.5rem;    /* 24px */
+  --font-size-3xl: 1.875rem;  /* 30px */
+  --font-size-4xl: 2.25rem;   /* 36px */
+  --font-size-5xl: 3rem;      /* 48px */
+  --font-size-6xl: 3.75rem;   /* 60px */
+
+  /* Line Heights */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Spacing Scale - Desktop */
+  --spacing-xs: 0.25rem;   /* 4px */
+  --spacing-sm: 0.5rem;    /* 8px */
+  --spacing-md: 1rem;      /* 16px */
+  --spacing-lg: 1.5rem;    /* 24px */
+  --spacing-xl: 2rem;      /* 32px */
+  --spacing-2xl: 3rem;     /* 48px */
+  --spacing-3xl: 4rem;     /* 64px */
+
+  /* Layout - Desktop */
+  --container-padding: 2rem;
+  --section-gap: 4rem;
+  --card-padding: 1.5rem;
+  --grid-gap: 1.5rem;
+}
+
+/* Desktop Typography */
+body {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+}
+
+h1 {
+  font-size: var(--font-size-5xl);
+  line-height: var(--line-height-tight);
+  font-weight: 700;
+}
+
+h2 {
+  font-size: var(--font-size-4xl);
+  line-height: var(--line-height-tight);
+  font-weight: 600;
+}
+
+h3 {
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-tight);
+  font-weight: 600;
+}
+
+h4 {
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-normal);
+  font-weight: 500;
+}
+
+h5 {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-normal);
+  font-weight: 500;
+}
+
+h6 {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  font-weight: 500;
+}
+
+p {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+}
+
+small, .text-sm {
+  font-size: var(--font-size-sm);
+}
+
+.text-xs {
+  font-size: var(--font-size-xs);
+}
+
+.text-lg {
+  font-size: var(--font-size-lg);
+}
+
+.text-xl {
+  font-size: var(--font-size-xl);
+}
+
+.text-2xl {
+  font-size: var(--font-size-2xl);
+}
+
+/* ===== Tablet (1024px - 1439px) ===== */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  :root {
+    /* Sidebar collapsed */
+    --sidebar-width: var(--sidebar-collapsed-width);
+
+    /* Typography Scale - Tablet (slightly reduced) */
+    --font-size-4xl: 2rem;      /* 32px */
+    --font-size-5xl: 2.5rem;    /* 40px */
+    --font-size-6xl: 3rem;      /* 48px */
+
+    /* Spacing - Tablet */
+    --container-padding: 1.5rem;
+    --section-gap: 3rem;
+    --card-padding: 1.25rem;
+    --grid-gap: 1.25rem;
+  }
+}
+
+/* ===== Mobile (≤768px) ===== */
+@media (max-width: 768px) {
+  :root {
+    /* Layout - Mobile */
+    --sidebar-width: 0px;
+    --nav-height: 56px;
+    --touch-target-min: 48px;
+
+    /* Typography Scale - Mobile */
+    --font-size-xs: 0.75rem;    /* 12px */
+    --font-size-sm: 0.8125rem;  /* 13px */
+    --font-size-base: 0.9375rem;/* 15px */
+    --font-size-lg: 1rem;       /* 16px */
+    --font-size-xl: 1.125rem;   /* 18px */
+    --font-size-2xl: 1.25rem;   /* 20px */
+    --font-size-3xl: 1.5rem;    /* 24px */
+    --font-size-4xl: 1.75rem;   /* 28px */
+    --font-size-5xl: 2rem;      /* 32px */
+    --font-size-6xl: 2.5rem;    /* 40px */
+
+    /* Spacing - Mobile (compressed) */
+    --container-padding: 1rem;
+    --section-gap: 2rem;
+    --card-padding: 1rem;
+    --grid-gap: 1rem;
+    --spacing-xl: 1.5rem;
+    --spacing-2xl: 2rem;
+    --spacing-3xl: 2.5rem;
+  }
+
+  /* Disable text selection on mobile for better touch experience */
+  body {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Allow text selection in input fields and content areas */
+  input,
+  textarea,
+  [contenteditable="true"],
+  .selectable {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+
+  /* Mobile touch-friendly buttons and interactive elements */
+  button,
+  [role="button"],
+  .touch-target {
+    min-height: var(--touch-target-min);
+  }
+
+  /* Mobile stacked layout utilities */
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+
+  .mobile-full-width {
+    width: 100% !important;
+  }
+
+  .mobile-hide {
+    display: none !important;
+  }
+
+  .mobile-show {
+    display: block !important;
+  }
+
+  /* Mobile grid adjustments */
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .md\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ===== Small Mobile (≤375px) ===== */
+@media (max-width: 375px) {
+  :root {
+    --touch-target-min: 52px;
+
+    /* Typography Scale - Small Mobile (enhanced readability) */
+    --font-size-base: 1rem;      /* 16px - slightly larger for readability */
+    --font-size-lg: 1.0625rem;   /* 17px */
+    --font-size-xl: 1.125rem;    /* 18px */
+    --font-size-2xl: 1.25rem;    /* 20px */
+    --font-size-3xl: 1.375rem;   /* 22px */
+    --font-size-4xl: 1.5rem;     /* 24px */
+    --font-size-5xl: 1.75rem;    /* 28px */
+    --font-size-6xl: 2rem;       /* 32px */
+
+    /* Spacing - Small Mobile (minimal) */
+    --container-padding: 0.75rem;
+    --section-gap: 1.5rem;
+    --card-padding: 0.75rem;
+    --grid-gap: 0.75rem;
+  }
+
+  /* Reduce action items on small screens */
+  .sm-mobile-hide {
+    display: none !important;
+  }
+
+  .sm-mobile-compact {
+    padding: 0.5rem !important;
+    gap: 0.5rem !important;
+  }
+
+  /* Single column on very small screens */
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ===== Utility Classes ===== */
+
+/* Text selection utility */
+.selectable {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+}
+
+/* Responsive container */
+.responsive-container {
+  padding-left: var(--container-padding);
+  padding-right: var(--container-padding);
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+}
+
+/* Responsive grid gap */
+.responsive-grid {
+  gap: var(--grid-gap);
+}
+
+/* Responsive section spacing */
+.responsive-section {
+  margin-bottom: var(--section-gap);
+}
+
+/* Responsive card */
+.responsive-card {
+  padding: var(--card-padding);
+}
+
+/* Touch-friendly target */
+.touch-target {
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

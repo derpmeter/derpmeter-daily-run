@@ -12,6 +12,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   agentCommand,
+  sessionOf,
+  sumUsage,
+  turnsFor,
   agyQuota,
   buildGrid,
   changedFiles,
@@ -82,7 +85,7 @@ const routeLine = (r) => async (dir) => {
 const blocked = { status: "blocked", answer: "The two contract tests contradict each other.", changed: [] };
 
 test("every task has an id, a budget and a check", () => {
-  assert.equal(Object.keys(tasks).length, 29);
+  assert.equal(Object.keys(tasks).length, 32);
   for (const [file, t] of Object.entries(tasks)) {
     assert.equal(t.id, file);
     assert.ok(t.budgetSec > 0 && typeof t.check === "function");
@@ -739,6 +742,33 @@ test("default effort passes no effort flag; Argon keeps its pinned id", () => {
   assert.ok(!agy.includes("--sandbox"));
   const [, codex] = agentCommand("codex", { ...base, model: "m", effort: "" });
   assert.ok(codex.includes("--ephemeral") && codex.includes("--json"));
+});
+
+test("follow-ups: sessions kept, resumed in place, one report per turn", () => {
+  const base = { prompt: "p", schemaFile: "s", lastFile: "l", capSec: 300, model: "m", effort: "" };
+  const [, claude] = agentCommand("claude-code", { ...base, keepSession: true });
+  assert.ok(!claude.includes("--no-session-persistence") && !claude.includes("--resume"));
+  const [, claude2] = agentCommand("claude-code", { ...base, resume: "abc" });
+  assert.equal(claude2[claude2.indexOf("--resume") + 1], "abc");
+  assert.ok(!claude2.includes("--no-session-persistence") && claude2.includes("--allowedTools"));
+  const [, codex] = agentCommand("codex", { ...base, keepSession: true });
+  assert.ok(!codex.includes("--ephemeral") && codex.includes("workspace-write"));
+  const [, codex2] = agentCommand("codex", { ...base, resume: "abc" });
+  assert.deepEqual(codex2.slice(0, 3), ["exec", "resume", "abc"]);
+  assert.ok(codex2.includes('sandbox_mode="workspace-write"') && codex2.includes("--output-schema") && codex2.at(-1) === "p");
+  const [, agy] = agentCommand("gemini-cli", { ...base, resume: "abc" });
+  assert.equal(agy[agy.indexOf("--conversation") + 1], "abc");
+  assert.equal(sessionOf("claude-code", '{"type":"system","subtype":"init","session_id":"s1"}\n{"type":"result"}'), "s1");
+  assert.equal(sessionOf("codex", '{"type":"thread.started","thread_id":"t1"}\n{"type":"turn.completed"}'), "t1");
+  assert.equal(sessionOf("gemini-cli", '{"conversation_id":"c1","response":"x"}'), "c1");
+  assert.equal(sessionOf("codex", "garbage"), null);
+  const turns = turnsFor({ prompt: "Do A.", followUps: ["Now B."] });
+  assert.equal(turns.length, 2);
+  assert.ok(turns[0].startsWith("Do A.") && turns[1].startsWith("Now B.") && turns[1].includes("report"));
+  assert.equal(turnsFor({ prompt: "Do A." }).length, 1);
+  assert.deepEqual(sumUsage([{ input: 1, output: 2, cacheRead: null, cacheWrite: 3, reasoning: null }, null, { input: 4, output: 5, cacheRead: 6, cacheWrite: null, reasoning: null }]),
+    { input: 5, output: 7, cacheRead: 6, cacheWrite: 3, reasoning: null });
+  assert.equal(sumUsage([null, null]), null);
 });
 
 test("tokens from each CLI's output", () => {
