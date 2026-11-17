@@ -2,6 +2,11 @@
 
 Every change to the models, the chores and the grading, newest first, with the reason. When the grading changes, every past run is scored again from its raw results (`bin/regrade.mjs`), so compared runs always use one grader. The original records stay.
 
+## 2026-11-18 · Gemini models at their official default effort (High)
+
+- Gemini 4 Argon, Carbon and Hydrogen were pinned to medium. From run `2026-11-18-1830` they run at the default Antigravity's models page lists for each of them, High (`gemini-4-*-high`; a bare id would fall back to the user's own setting, so the effort stays explicit).
+- Same chores and grader. The chores' time budgets were measured at medium, so Gemini times and "too slow" votes may move with the higher effort. DerpMeter keeps one line per model and marks the change.
+
 ## 2026-11-17 · Three Toonify chores, with follow-up requests
 
 - New fixture `toonify`: [Toonify](https://github.com/workromancer/toonify.workromancer.ai) (MIT) at commit `6fee8dd`, a FastAPI + Next.js webtoon studio. Images, deployment files and a stored credentials file were removed. Backend tests run offline on SQLite with in-memory fakes for MinIO and Gemini; dependencies are installed once outside the runs (`bin/toonify-deps.sh`, pinned to a January 2026 lock) and linked into each copy, so runs need no network. A run whose dependencies are missing skips these chores.

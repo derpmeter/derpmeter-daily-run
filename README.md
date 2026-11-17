@@ -26,9 +26,9 @@ This is **not a benchmark**. There is no leaderboard, no difficulty ladder and n
 | --- | --- | --- |
 | Claude Code | Claude Opus 5.5, Claude Sonnet 5.5, Claude Fable 5.2 | model default |
 | Codex | GPT-6.1 Sol, GPT-6.1 Terra | model default |
-| Antigravity | Gemini 4 Argon, Gemini 4 Carbon, Gemini 4 Hydrogen | medium (pinned) |
+| Antigravity | Gemini 4 Argon, Gemini 4 Carbon, Gemini 4 Hydrogen | high: their official default (pinned) |
 
-Antigravity puts the effort in the model id, and a bare id quietly falls back to the user's own setting, so the Gemini models are pinned to `gemini-4-*-medium`. If a CLI answers with another model than the one asked for, that run is skipped, not voted. (In results and ids, Antigravity appears as `gemini-cli`.)
+Antigravity puts the effort in the model id, and a bare id quietly falls back to the user's own setting, so the Gemini models are pinned to the default Antigravity documents for them, High (`gemini-4-*-high`; medium until run `2026-11-17-1830`). If a CLI answers with another model than the one asked for, that run is skipped, not voted. (In results and ids, Antigravity appears as `gemini-cli`.)
 
 **New models.** DerpMeter watches the providers' official model pages. When the maintainer approves a newly found model, the runner tries it in its CLI right before the next daily run (03:30 KST, 18:30 UTC); if the CLI answers with that model, it joins `grid.json` from that run, with an entry in the [changelog](docs/CHANGELOG.md). If the CLI does not serve it yet, it is tried again before each run for two weeks.
 
