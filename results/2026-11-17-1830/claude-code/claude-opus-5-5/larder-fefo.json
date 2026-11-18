@@ -1,0 +1,59 @@
+{
+  "run": "2026-11-17-1830",
+  "kind": "daily",
+  "day": "2026-11-17",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "larder-fefo",
+  "task_version": "3d69c258",
+  "cli_version": "2.1.326",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 21385,
+  "tokens_input": 167821,
+  "tokens_output": 1696,
+  "tokens_cache_read": 137127,
+  "tokens_cache_write": 30682,
+  "tokens_reasoning": 24,
+  "quota_5h_before": 32,
+  "quota_5h_after": 32,
+  "quota_week_before": 50,
+  "quota_week_after": 50,
+  "quota_confidence": "ok",
+  "why": "FEFO by the data rules, with a regression test",
+  "grader": "31e26a8c",
+  "verdict": "smart",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Bug report: cooking bechamel today took the new milk (lot HD-1026) although lot HD-1022 expires tomorrow. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Consumption sorted batches newest-received first; it now follows the FEFO rule in docs/DATA.md (earliest expiry first, no expiry last, then received first, then lower id). The new regression tests fail without the fix and pass with it, and npm test (28/28) and lint pass.",
+    "changed": [
+      "src/domain/batches.js",
+      "tests/stock.test.js",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "FEFO by the data rules, with a regression test"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "src/domain/batches.js",
+    "tests/stock.test.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex bb2dd6d..7d8b1a2 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,7 @@\n ## Unreleased\n \n - Show stock on hand in `GET /items`.\n+- Fix: stock is used first-expired, first-out again; consumption took the newest batch first.\n \n ## 2.3.0 - 2026-10-20\n \ndiff --git a/src/domain/batches.js b/src/domain/batches.js\nindex ee14fde..fcb7f9b 100644\n--- a/src/domain/batches.js\n+++ b/src/domain/batches.js\n@@ -20,7 +20,15 @@ export function getBatch(store, id) {\n \n // The order in which an item's batches are used up.\n function consumptionOrder(batches) {\n-  return [...batches].sort((a, b) => b.receivedOn.localeCompare(a.receivedOn));\n+  // FEFO: earliest expiry first, no expiry last; then received first, then id.\n+  return [...batches].sort((a, b) => {\n+    if (a.expires !== b.expires) {\n+      if (!a.expires) return 1;\n+      if (!b.expires) return -1;\n+      return a.expires.localeCompare(b.expires);\n+    }\n+    return a.receivedOn.localeCompare(b.receivedOn) || a.id - b.id;\n+  });\n }\n \n /**\ndiff --git a/tests/stock.test.js b/tests/stock.test.js\nindex 1f76fe4..34c73e5 100644\n--- a/tests/stock.test.js\n+++ b/tests/stock.test.js\n@@ -27,3 +27,24 @@ test(\"waste is recorded against a batch\", () => {\n   assert.equal(m.type, \"waste\");\n   assert.equal(store.data.batches.find((b) => b.id === 6).qty, 12);\n });\n+\n+test(\"consume uses the batch that expires first (FEFO)\", () => {\n+  const store = fresh();\n+  // Milk: lot HD-1026 (id 3) is newer; lot HD-1022 (id 4) expires first.\n+  const used = consume(store, 2, 3, { at, ref: \"bechamel\" });\n+  assert.deepEqual(used, [\n+    { batchId: 4, qty: 2 },\n+    { batchId: 3, qty: 1 },\n+  ]);\n+});\n+\n+test(\"consume uses batches without expiry last, then received first, then lower id\", () => {\n+  const store = fresh();\n+  store.data.batches.push(\n+    { id: 100, itemId: 3, lot: \"N\", qty: 1, receivedOn: \"2026-10-01\", expires: null, location: \"fridge\" },\n+    { id: 102, itemId: 3, lot: \"B\", qty: 1, receivedOn: \"2026-10-10\", expires: \"2026-12-20\", location: \"fridge\" },\n+    { id: 101, itemId: 3, lot: \"A\", qty: 1, receivedOn: \"2026-10-10\", expires: \"2026-12-20\", location: \"fridge\" },\n+  );\n+  const used = consume(store, 3, 4.5, { at });\n+  assert.deepEqual(used.map((u) => u.batchId), [101, 102, 5, 100]);\n+});\n",
+  "permission_denials": [],
+  "cli_errors": "",
+  "exit": 0,
+  "timed_out": false,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": true,
+  "runner_started": "2026-11-17T18:30:05.721Z",
+  "runner_commit": "2d025cc"
+}
