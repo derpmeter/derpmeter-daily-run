@@ -83,9 +83,14 @@ const root = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
 const home = homedir();
 const started = new Date();
 const runnerCommit = (await exec("git", ["rev-parse", "--short", "HEAD"], { cwd: root })).stdout.trim();
-const day = started.toISOString().slice(0, 10);
-const stamp = started.toISOString().slice(11, 16).replace(":", "");
-const run = `${day}-${stamp}`;
+// --run adds cells to a run that already happened (a model that missed it),
+// e.g. --run 2026-11-18-1830 --model gpt-6.2-astra. Not published by itself:
+// the run's own publish, or a manual commit, carries its results.
+const into = option("--run");
+if (into && !/^\d{4}-\d{2}-\d{2}-\d{4}$/.test(into)) throw new Error("--run is like 2026-11-18-1830.");
+if (into && publish) throw new Error("--run does not publish; commit its results with the run's own.");
+const day = into ? into.slice(0, 10) : started.toISOString().slice(0, 10);
+const run = into ?? `${day}-${started.toISOString().slice(11, 16).replace(":", "")}`;
 const bins = { claude: process.env.CLAUDE_BIN, codex: process.env.CODEX_BIN, agy: process.env.AGY_BIN };
 const BIN = { "claude-code": bins.claude || "claude", codex: bins.codex || "codex", "gemini-cli": bins.agy || "agy" };
 
@@ -272,7 +277,10 @@ if (apply) {
 }
 log(`run ${run} (${kind}): ${cells.length} cells × ${runTasks.length} chores`);
 
-await sweepAgy();
+// Only a run with Antigravity cells clears Antigravity's Lab conversations,
+// so a Codex or Claude Code run next to a scheduled one leaves them alone.
+const usesAgy = cells.some((c) => c.agent === "gemini-cli");
+if (usesAgy) await sweepAgy();
 const scratch = await mkdtemp(join(tmpdir(), "derpmeter-lab-"));
 const schemaFile = join(scratch, "report.schema.json");
 await writeFile(schemaFile, JSON.stringify(REPORT_SCHEMA));
@@ -446,13 +454,16 @@ await Promise.all(
   }),
 );
 if (!keep) {
-  await sweepAgy();
+  if (usesAgy) await sweepAgy();
   await rm(scratch, { recursive: true, force: true });
 }
 
 // Day summary for people reading the repository.
 const cellsOut = new Map();
-for (const r of results) {
+const stored = existsSync(join(root, "results", run))
+  ? (await walk(join(root, "results", run))).filter(([f]) => f.endsWith(".json")).map(([, b]) => JSON.parse(b))
+  : results;
+for (const r of stored) {
   const k = `${r.agent}|${r.model}|${r.effort}`;
   const c = cellsOut.get(k) ?? { n: 0, sum: 0, skipped: 0 };
   if (r.score === null) c.skipped++;
