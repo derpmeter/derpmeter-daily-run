@@ -2,6 +2,12 @@
 
 Every change to the models, the chores and the grading, newest first, with the reason. When the grading changes, every past run is scored again from its raw results (`bin/regrade.mjs`), so compared runs always use one grader. The original records stay.
 
+## 2026-11-18 · README check reads wrapped route lines; addresses in results
+
+- The README check (`larder-sales`, `stock-route`, `larder-transfer`, `report-route`) looked for a route only on a bullet's first line. The fixture's own README wraps long bullets onto indented lines, so a route documented on the second line was missed. Wrapped lines now count as part of their bullet (`test/grade.test.mjs`). Every past run was regraded: 5 `larder-sales` results move from Meh to Smart (2026-11-04 Opus, 2026-11-08 and 2026-11-11 Sonnet, 2026-11-14 Hydrogen, 2026-11-15 Opus). No other score changed.
+- Raw results hide e-mail addresses. The pattern also caught a Python decorator at the start of a diff line (`+@router.get(` became `<email>(`) and test addresses such as `bo@example.com`, so the stored diffs of most Toonify results from `2026-11-17-1830` no longer apply. From run `2026-11-18-1830` an address must start with a letter or digit, and reserved example domains (`example.com`, `.test` and the like, RFC 2606) are kept. The regrade puts a masked decorator back only when the file then matches the blob hash in the diff's own `index` line (`lib/restore.mjs`).
+- 22 Toonify results from `2026-11-17-1830` cannot be regraded: 19 still hide test addresses that cannot be restored (all sign-ups would share one address and the test suite would fail for reasons that are not the model's), and 3 diffs were cut at the size limit. Their original votes stand and they are listed as not regradable. Votes were never affected: every run is graded on its live copy before the result is stored.
+
 ## 2026-11-18 · Gemini models at their official default effort (High)
 
 - Gemini 4 Argon, Carbon and Hydrogen were pinned to medium. From run `2026-11-18-1830` they run at the default Antigravity's models page lists for each of them, High (`gemini-4-*-high`; a bare id would fall back to the user's own setting, so the effort stays explicit).

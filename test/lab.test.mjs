@@ -836,7 +836,7 @@ test("another session of the same CLI working makes a quota reading low confiden
 
 test("published results carry no local paths, names or addresses", () => {
   const out = sanitize(
-    { why: "edited /private/var/T/run-1/src/a.js", a: ["/Users/me/x", "mail me@example.com"], n: 3 },
+    { why: "edited /private/var/T/run-1/src/a.js", a: ["/Users/me/x", "mail me@mailhost.io"], n: 3 },
     { workspace: "/private/var/T/run-1", home: "/Users/me" },
   );
   assert.deepEqual(out, { why: "edited <workspace>/src/a.js", a: ["~/x", "mail <email>"], n: 3 });

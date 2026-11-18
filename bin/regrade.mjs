@@ -11,6 +11,7 @@ import { cp, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GRADER_LIBS, capSec, changedFiles, classifyFailure, graderVersion, inputVersion, judge } from "../lib/lab.mjs";
+import { restoreDecorators } from "../lib/restore.mjs";
 import { checkContext, exec, walk } from "../lib/system.mjs";
 
 const args = process.argv.slice(2);
@@ -123,7 +124,15 @@ for (const run of (await readdir(join(root, "results"))).filter((d) => /^\d{4}-\
         await g("add", "-A");
         await g("commit", "-qm", "fixture");
         if (raw.diff) {
-          await writeFile(join(dir, ".lab.diff"), await restoreEmails(raw.diff, dir));
+          let diff = await restoreEmails(raw.diff, dir);
+          if (/^<email>/m.test(diff)) diff = restoreDecorators(diff, new Map(await walk(join(tree, "fixtures", oldTask.fixture ?? "pantry"))));
+          // An address that cannot be put back would change what the checks
+          // run (e.g. test sign-ups that all share one address): not regradable.
+          if (diff.includes("<email>")) {
+            skipped.push(`${run} ${raw.model} ${raw.task}: diff masks an address that cannot be restored`);
+            continue;
+          }
+          await writeFile(join(dir, ".lab.diff"), diff);
           const a = await g("apply", "--whitespace=nowarn", "--exclude=*.pyc", "--exclude=*__pycache__*", ".lab.diff");
           await rm(join(dir, ".lab.diff"));
           if (a.code !== 0) {
