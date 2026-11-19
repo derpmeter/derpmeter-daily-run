@@ -2,6 +2,10 @@
 
 Every change to the models, the chores and the grading, newest first, with the reason. When the grading changes, every past run is scored again from its raw results (`bin/regrade.mjs`), so compared runs always use one grader. The original records stay.
 
+## 2026-11-19 · Gemini 4 Neon added
+
+- Added automatically: Antigravity 1.5.12 answered `gemini-4-neon` right before run `2026-11-19-1830`, which is its first run. It runs pinned to high like the other Antigravity models. Found by DerpMeter's release watch and approved by the maintainer.
+
 ## 2026-11-19 · Alembic migrations in Toonify; "Row 3" names the row; total-first pass counts
 
 - Toonify chores (`toon-episode-copy`, `toon-failed-charges`, `toon-image-fetch`) now allow `backend/alembic/versions/`. A data migration chained to the fixture's Alembic head is part of the change, not an extra file. 3 `toon-episode-copy` results from `2026-11-18-1830` move from Meh to Smart (Fable, GPT-6.2 Astra, GPT-6.2 Sol).
