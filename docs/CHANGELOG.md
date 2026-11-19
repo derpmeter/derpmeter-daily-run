@@ -2,6 +2,16 @@
 
 Every change to the models, the chores and the grading, newest first, with the reason. When the grading changes, every past run is scored again from its raw results (`bin/regrade.mjs`), so compared runs always use one grader. The original records stay.
 
+## 2026-11-18 · GPT-6.2 Astra added
+
+- From run `2026-11-18-1830`, at the model default effort, on OpenAI Codex 0.170.0. Found by DerpMeter's release watch and approved by the maintainer. The scheduled check right before that run failed because the installed Codex (0.163.0) did not serve the model; with Codex 0.170.0 it was run into the same run afterwards (`bin/lab-daily.mjs --run`), with the same chores and grader.
+
+## 2026-11-18 · GPT-6.1 Sol → GPT-6.2 Sol
+
+- Model update: GPT-6.2 Sol takes the place of GPT-6.1 Sol from run `2026-11-18-1830`, at the model default effort, on OpenAI Codex 0.170.0. Like GPT-6.2 Astra, it missed the scheduled check (Codex 0.163.0) and was run into the same run afterwards; that run's GPT-6.1 Sol results were replaced, so the run has one Sol. DerpMeter draws both as one line with a "Model update" mark; every earlier vote keeps the model that ran it.
+- GPT-6.1 Terra ran that night on Codex 0.163.0; from the next run all Codex models use 0.170.0.
+- `bin/lab-daily.mjs --run <run>` adds cells to a run that already happened and is not published on its own. Antigravity's Lab conversations are now cleared only by a run that has Antigravity cells, so such a run can go next to a scheduled one.
+
 ## 2026-11-18 · README check reads wrapped route lines; addresses in results
 
 - The README check (`larder-sales`, `stock-route`, `larder-transfer`, `report-route`) looked for a route only on a bullet's first line. The fixture's own README wraps long bullets onto indented lines, so a route documented on the second line was missed. Wrapped lines now count as part of their bullet (`test/grade.test.mjs`). Every past run was regraded: 5 `larder-sales` results move from Meh to Smart (2026-11-04 Opus, 2026-11-08 and 2026-11-11 Sonnet, 2026-11-14 Hydrogen, 2026-11-15 Opus). No other score changed.
