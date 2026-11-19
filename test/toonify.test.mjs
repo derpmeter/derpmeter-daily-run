@@ -8,6 +8,7 @@ import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkContext, exec } from "../lib/system.mjs";
+import { judge } from "../lib/lab.mjs";
 import { depsReady, samePlaceholders } from "../lib/toonify.mjs";
 
 const FIXTURE = new URL("../fixtures/toonify", import.meta.url).pathname;
@@ -50,6 +51,24 @@ for (const id of Object.keys(UNTOUCHED))
     const after = await check(id, true);
     assert.deepEqual([after.ok, after.partial, after.why], [false, true, REFERENCE[id]]);
   });
+
+// A data migration chained to the Alembic head is part of the change, not an
+// extra file (toon-episode-copy, 11-18).
+test("toonify chores: an Alembic migration is not an extra file", async () => {
+  for (const id of Object.keys(UNTOUCHED)) {
+    const task = (await import(`../tasks/${id}.mjs`)).default;
+    const r = judge({
+      skipped: null,
+      timedOut: false,
+      report: { status: "done", answer: "Done.", changed: [] },
+      check: { ok: true, why: "works" },
+      changed: ["backend/alembic/versions/c3d9a1e5b7f2_renumber_episodes.py", "backend/app/models.py"],
+      task,
+      durationMs: 60_000,
+    });
+    assert.deepEqual([r.score, r.reason], [0, null], `${id}: ${r.why}`);
+  }
+});
 
 test("placeholders: values shown must match; plural selectors may differ", () => {
   const same = (en, ko) => samePlaceholders({ en: new Map([["a", en]]), ko: new Map([["a", ko]]) });

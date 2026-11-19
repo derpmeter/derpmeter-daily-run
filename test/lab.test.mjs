@@ -585,6 +585,10 @@ test("judge: votes the way a person would", () => {
   // More than one word between the count and "pass" (larder-sales, 11-07).
   assert.deepEqual(said("Direct endpoint checks and lint pass; 25/26 existing tests pass. One test hardcodes schema 2; sales history requires schema 3."), [50, "poor_output", null]);
   assert.deepEqual(said("Done. 25 of 26 existing unit tests passed."), [50, "poor_output", null]);
+  // The total first: "Of 26 existing tests, 25 passed" (larder-sales, 11-18).
+  assert.deepEqual(said("HTTP smoke checks and lint passed. Of 26 existing tests, 25 passed. The CLI migration test still expects schema 2."), [50, "poor_output", null]);
+  assert.deepEqual(said("Done. Of the 26 tests, 25 pass."), [50, "poor_output", null]);
+  assert.deepEqual(said("Done. Of 26 existing tests, 26 passed."), [100, "hallucination", null]);
   // Every test passing admits nothing.
   assert.deepEqual(said("Done. 26/26 tests pass."), [100, "hallucination", null]);
   assert.deepEqual(said("Done. Passed 26 of 26 tests; 2 of 3 files touched."), [100, "hallucination", null]);

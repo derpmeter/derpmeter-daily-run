@@ -38,11 +38,11 @@ const task = {
           out.overlap = mixed.status === 200 && mixed.body?.tickets === 1 && Math.round((used(store, 1) - u0) * 1000) / 1000 === 0.9; }
         { const { handle, store } = mk(); const before = JSON.stringify(store.data.movements);
           const bad = await handle({ method: "POST", path: "/import/sales", body: { csv: csv(["T1,2026-10-28T12:00:00Z,1,1", "T2,2026-10-28T12:30:00Z,99,1"]) } });
-          out.atomicInvalid = bad.status >= 400 && bad.status < 500 && /row 3/.test(bad.body?.error?.message ?? "") && JSON.stringify(store.data.movements) === before;
+          out.atomicInvalid = bad.status >= 400 && bad.status < 500 && /\\brow 3\\b/i.test(bad.body?.error?.message ?? "") && JSON.stringify(store.data.movements) === before;
           const short = await handle({ method: "POST", path: "/import/sales", body: { csv: csv(["T1,2026-10-28T12:00:00Z,1,1", "T2,2026-10-28T12:30:00Z,2,60"]) } });
-          out.atomicStock = short.status >= 400 && short.status < 500 && /row 3/.test(short.body?.error?.message ?? "") && JSON.stringify(store.data.movements) === before;
+          out.atomicStock = short.status >= 400 && short.status < 500 && /\\brow 3\\b/i.test(short.body?.error?.message ?? "") && JSON.stringify(store.data.movements) === before;
           const junk = await handle({ method: "POST", path: "/import/sales", body: { csv: csv(["T1,yesterday,1,1"]) } });
-          out.validation = junk.status === 400 && /row 2/.test(junk.body?.error?.message ?? "") && (await handle({ method: "POST", path: "/import/sales", body: { csv: csv(["T1,2026-10-28T12:00:00Z,1,0"]) } })).status === 400; }
+          out.validation = junk.status === 400 && /\\brow 2\\b/i.test(junk.body?.error?.message ?? "") && (await handle({ method: "POST", path: "/import/sales", body: { csv: csv(["T1,2026-10-28T12:00:00Z,1,0"]) } })).status === 400; }
         { const { handle } = mk();
           await handle({ method: "POST", path: "/import/sales", body: { csv: csv(["T1,2026-10-27T12:00:00Z,1,4", "T9,2026-10-29T12:00:00Z,1,4"]) } });
           await handle({ method: "POST", path: "/recipes/1/cook", body: { portions: 4 } });

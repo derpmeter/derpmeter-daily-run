@@ -231,6 +231,9 @@ test("larder-sales: reference solution; without the variance docs it is partly d
   // "with the difference": the field may be called difference.
   const named = edit("src/domain/sales.js", "return { itemId, theoretical: t, actual: a, diff: round(a - t) };", "return { itemId, theoretical: t, actual: a, difference: round(a - t) };");
   assert.equal((await check("larder-sales", ...routes, named, ...docs)).ok, true);
+  // "names the row": a message that starts with "Row 3: …" names it too (Opus, 11-18).
+  const capital = edit("src/domain/sales.js", "const where = `row ${i + 2}`;", "const where = `Row ${i + 2}`;");
+  assert.equal((await check("larder-sales", ...routes, capital, ...docs)).ok, true);
   const bare = await check("larder-sales", ...routes);
   assert.equal(bare.partial, true);
   assert.match(bare.why, /readme|changelog/);

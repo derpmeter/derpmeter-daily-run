@@ -36,7 +36,7 @@ const task = {
     ].join("\n"),
   ],
   budgetSec: 1080,
-  allowed: ["backend/app/", "backend/tests/", "frontend/src/", "frontend/messages/", "docs/", "CHANGELOG.md"],
+  allowed: ["backend/app/", "backend/alembic/versions/", "backend/tests/", "frontend/src/", "frontend/messages/", "docs/", "CHANGELOG.md"],
   forbidden: [],
   async setup(ctx) {
     await linkDeps(ctx);
