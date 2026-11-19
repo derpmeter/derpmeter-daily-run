@@ -2,6 +2,13 @@
 
 Every change to the models, the chores and the grading, newest first, with the reason. When the grading changes, every past run is scored again from its raw results (`bin/regrade.mjs`), so compared runs always use one grader. The original records stay.
 
+## 2026-11-19 · Alembic migrations in Toonify; "Row 3" names the row; total-first pass counts
+
+- Toonify chores (`toon-episode-copy`, `toon-failed-charges`, `toon-image-fetch`) now allow `backend/alembic/versions/`. A data migration chained to the fixture's Alembic head is part of the change, not an extra file. 3 `toon-episode-copy` results from `2026-11-18-1830` move from Meh to Smart (Fable, GPT-6.2 Astra, GPT-6.2 Sol).
+- `larder-sales` asks that an error names the row (`row 2` is the first data row). The check only accepted lower case, so a message starting "Row 3: only 10 l of milk left." failed although nothing was imported. The row is now matched without regard to case. 5 results move from Meh to Smart (2026-11-02 Sonnet, 2026-11-03, 2026-11-05 and 2026-11-18 Opus, 2026-11-15 Fable).
+- An answer that says "Of 26 existing tests, 25 passed" now counts as admitting a failure, like "25 of 26 tests passed" already did. 1 result moves from Dumb to Meh (2026-11-18 GPT-6.2 Sol, `larder-sales`).
+- Every past run was regraded; no other score changed (`test/toonify.test.mjs`, `test/larder-long.test.mjs`, `test/lab.test.mjs`). 9 `toon-failed-charges` results and 1 `toon-episode-copy` result from `2026-11-18-1830` cannot be regraded because their stored diffs were cut at 50,000 characters; their original votes stand.
+
 ## 2026-11-18 · GPT-6.2 Astra added
 
 - From run `2026-11-18-1830`, at the model default effort, on OpenAI Codex 0.170.0. Found by DerpMeter's release watch and approved by the maintainer. The scheduled check right before that run failed because the installed Codex (0.163.0) did not serve the model; with Codex 0.170.0 it was run into the same run afterwards (`bin/lab-daily.mjs --run`), with the same chores and grader.
