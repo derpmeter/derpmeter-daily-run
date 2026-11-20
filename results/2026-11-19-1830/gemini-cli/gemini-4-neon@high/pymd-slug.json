@@ -1,0 +1,59 @@
+{
+  "run": "2026-11-19-1830",
+  "kind": "daily",
+  "day": "2026-11-19",
+  "agent": "gemini-cli",
+  "model": "gemini-4-neon",
+  "effort": "high",
+  "task": "pymd-slug",
+  "task_version": "32e7cc8d",
+  "cli_version": "1.5.12",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 245784,
+  "tokens_input": 119916,
+  "tokens_output": 20007,
+  "tokens_cache_read": 1167965,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 15989,
+  "quota_5h_before": 21.473,
+  "quota_5h_after": 22.286,
+  "quota_week_before": 46.724,
+  "quota_week_after": 46.724,
+  "quota_confidence": "ok",
+  "why": "246s over 150s",
+  "grader": "9b748a32",
+  "verdict": "meh",
+  "model_id": "gemini-4-neon-high",
+  "prompt": "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Fixed `slugify` in `markdown/extensions/toc.py` to `.strip()` whitespace after removing non-word characters so headings like `# Hello world !` produce `hello-world` without a trailing dash, added regression tests in `tests/test_syntax/extensions/test_toc.py`, and recorded the fix in `docs/changelog.md`.",
+    "changed": [
+      "markdown/extensions/toc.py",
+      "tests/test_syntax/extensions/test_toc.py",
+      "docs/changelog.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "slugify strips again on every path, with a regression test and changelog"
+  },
+  "changed": [
+    "docs/changelog.md",
+    "markdown/extensions/toc.py",
+    "tests/test_syntax/extensions/test_toc.py"
+  ],
+  "diff": "diff --git a/docs/changelog.md b/docs/changelog.md\nindex dcb6362..400cb48 100644\n--- a/docs/changelog.md\n+++ b/docs/changelog.md\n@@ -12,6 +12,15 @@ and this project adheres to the\n [Python Version Specification](https://packaging.python.org/en/latest/specifications/version-specifiers/).\n See the [Contributing Guide](contributing.md) for details.\n \n+## [unreleased]\n+\n+### Fixed\n+\n+* Strip leading and trailing whitespace in the `toc` extension's `slugify`\n+  function after removing non-word characters so headings with punctuation\n+  preceded or followed by spaces do not produce leading or trailing\n+  separators.\n+\n ## [3.11.2] - 2026-10-19\n \n ### Fixed\ndiff --git a/markdown/extensions/toc.py b/markdown/extensions/toc.py\nindex 3cc6481..0681254 100644\n--- a/markdown/extensions/toc.py\n+++ b/markdown/extensions/toc.py\n@@ -41,7 +41,7 @@ def slugify(value: str, separator: str, unicode: bool = False) -> str:\n         # Replace Extended Latin characters with ASCII, i.e. `žlutý` => `zluty`\n         value = unicodedata.normalize('NFKD', value)\n         value = value.encode('ascii', 'ignore').decode('ascii')\n-    value = re.sub(r'[^\\w\\s-]', '', value).lower()\n+    value = re.sub(r'[^\\w\\s-]', '', value).strip().lower()\n     return re.sub(r'[{}\\s]+'.format(separator), separator, value)\n \n \ndiff --git a/tests/test_syntax/extensions/test_toc.py b/tests/test_syntax/extensions/test_toc.py\nindex 372ba09..7df97ad 100644\n--- a/tests/test_syntax/extensions/test_toc.py\n+++ b/tests/test_syntax/extensions/test_toc.py\n@@ -21,7 +21,7 @@ License: BSD (see LICENSE.md for details).\n \n from markdown.test_tools import TestCase\n from markdown import Markdown\n-from markdown.extensions.toc import TocExtension, strip_tags, unique\n+from markdown.extensions.toc import TocExtension, slugify, slugify_unicode, strip_tags, unique\n from markdown.extensions.nl2br import Nl2BrExtension\n \n \n@@ -1409,6 +1409,68 @@ class TestTOC(TestCase):\n             extensions=[TocExtension(), 'footnotes']\n         )\n \n+    def testSlugifyStripsWhitespace(self):\n+        self.assertMarkdownRenders(\n+            self.dedent(\n+                '''\n+                # Hello world !\n+                # ! Leading punctuation\n+                # ! Both sides !\n+                # Trailing emoji 🐍\n+                # ! !\n+                '''\n+            ),\n+            self.dedent(\n+                '''\n+                <h1 id=\"hello-world\">Hello world !</h1>\n+                <h1 id=\"leading-punctuation\">! Leading punctuation</h1>\n+                <h1 id=\"both-sides\">! Both sides !</h1>\n+                <h1 id=\"trailing-emoji\">Trailing emoji 🐍</h1>\n+                <h1 id=\"_1\">! !</h1>\n+                '''\n+            ),\n+            expected_attrs={\n+                'toc': (\n+                    '<div class=\"toc\">\\n'\n+                      '<ul>\\n'                                                            # noqa\n+                        '<li><a href=\"#hello-world\">Hello world !</a></li>\\n'             # noqa\n+                        '<li><a href=\"#leading-punctuation\">! Leading punctuation</a></li>\\n'  # noqa\n+                        '<li><a href=\"#both-sides\">! Both sides !</a></li>\\n'             # noqa\n+                        '<li><a href=\"#trailing-emoji\">Trailing emoji 🐍</a></li>\\n'      # noqa\n+                        '<li><a href=\"#_1\">! !</a></li>\\n'                                # noqa\n+                      '</ul>\\n'                                                           # noqa\n+                    '</div>\\n'                                                            # noqa\n+                ),\n+            },\n+            extensions=['toc']\n+        )\n+\n+    def testSlugifyCustomSeparatorAndUnicode(self):\n+        self.assertMarkdownRenders(\n+            '# Hello world !',\n+            '<h1 id=\"hello_world\">Hello world !</h1>',\n+            extensions=[TocExtension(separator='_')]\n+        )\n+        self.assertMarkdownRenders(\n+            '# こんにちは ！',\n+            '<h1 id=\"こんにちは\">こんにちは ！</h1>',\n+            extensions=[TocExtension(slugify=slugify_unicode)]\n+        )\n+\n+\n+class TestSlugify(TestCase):\n+\n+    def testSlugifyStripsLeadingAndTrailingWhitespace(self):\n+        self.assertEqual(slugify('Hello world !', '-'), 'hello-world')\n+        self.assertEqual(slugify('! Hello world', '-'), 'hello-world')\n+        self.assertEqual(slugify('! Hello world !', '-'), 'hello-world')\n+        self.assertEqual(slugify('  Hello world  ', '-'), 'hello-world')\n+        self.assertEqual(slugify('Hello world !', '_'), 'hello_world')\n+        self.assertEqual(slugify('Hello world 🐍', '-'), 'hello-world')\n+        self.assertEqual(slugify('! !', '-'), '')\n+        self.assertEqual(slugify_unicode('Hello world !', '-'), 'hello-world')\n+        self.assertEqual(slugify_unicode('こんにちは ！', '-'), 'こんにちは')\n+\n \n class testStripTags(TestCase):\n \n",
+  "permission_denials": [],
+  "cli_errors": "E1120 11:12:34.508623    3607 telemetry.go:142] error recording trajectory segment analytics: Post \"https://daily-cloudcode-pa.googleapis.com/v1internal:recordTrajectoryAnalytics\": context canceled",
+  "exit": 0,
+  "timed_out": false,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": false,
+  "runner_started": "2026-11-19T18:30:05.553Z",
+  "runner_commit": "4bed096"
+}
