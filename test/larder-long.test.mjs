@@ -234,6 +234,9 @@ test("larder-sales: reference solution; without the variance docs it is partly d
   // "names the row": a message that starts with "Row 3: …" names it too (Opus, 11-18).
   const capital = edit("src/domain/sales.js", "const where = `row ${i + 2}`;", "const where = `Row ${i + 2}`;");
   assert.equal((await check("larder-sales", ...routes, capital, ...docs)).ok, true);
+  // "dishes" may count the sale lines instead of the portions (Fable, 11-19).
+  const lines = edit("src/domain/sales.js", "dishes: fresh.reduce((s, r) => s + r.qty, 0) };", "dishes: fresh.length };");
+  assert.equal((await check("larder-sales", ...routes, lines, ...docs)).ok, true);
   const bare = await check("larder-sales", ...routes);
   assert.equal(bare.partial, true);
   assert.match(bare.why, /readme|changelog/);

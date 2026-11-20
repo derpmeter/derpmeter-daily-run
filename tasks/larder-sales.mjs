@@ -2,6 +2,7 @@
 // nothing per file, and a variance report against the ledger. Sale stock may
 // be booked at the sale time or the import time (the spec leaves it open), so
 // the variance check accepts both, and the gap may be named diff or difference.
+// "dishes" may count portions (qty) or sale lines: the spec does not say.
 import { LARDER_PRELUDE } from "../lib/larder.mjs";
 import { cases, changelogNoted, grade, readmeRoute } from "../lib/grade.mjs";
 
@@ -29,7 +30,7 @@ const task = {
       try {
         { const { handle, store } = mk(); const u0 = used(store, 1);
           const a = await handle({ method: "POST", path: "/import/sales", body: { csv: csv(["T1,2026-10-28T12:00:00Z,1,2", "T2,2026-10-28T12:30:00Z,2,1"]) } });
-          out.imports = a.status === 200 && a.body?.tickets === 2 && a.body?.dishes === 3 && Math.round((used(store, 1) - u0) * 1000) / 1000 === 0.6;
+          out.imports = a.status === 200 && a.body?.tickets === 2 && [2, 3].includes(a.body?.dishes) && Math.round((used(store, 1) - u0) * 1000) / 1000 === 0.6;
           out.ref = store.data.movements.some((m) => m.ref === "sale:T1") && store.data.movements.some((m) => m.ref === "sale:T2");
           const n = store.data.movements.length;
           const again = await handle({ method: "POST", path: "/import/sales", body: { csv: csv(["T1,2026-10-28T12:00:00Z,1,2", "T2,2026-10-28T12:30:00Z,2,1"]) } });
