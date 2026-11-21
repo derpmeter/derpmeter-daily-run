@@ -2,6 +2,10 @@
 
 Every change to the models, the chores and the grading, newest first, with the reason. When the grading changes, every past run is scored again from its raw results (`bin/regrade.mjs`), so compared runs always use one grader. The original records stay.
 
+## 2026-11-21 · larder-sales: the variance gap may be named variance
+
+- `larder-sales` asks the variance report to list theoretical and actual use "with the difference" without naming the field. The check accepted `diff` or `difference`; a report at `/reports/variance` that calls it `variance` failed although its numbers were right. `variance` is now accepted too (`test/larder-long.test.mjs`). Every past run was regraded: 2026-10-28 (`2026-10-28-0614`) Sonnet moves from Meh to Smart. 2026-11-20 Fable, 2026-10-28 Opus and 2026-11-13 Gemini 4 Hydrogen stay Meh, now for running over their time budget. No other score changed.
+
 ## 2026-11-20 · larder-sales: dishes may count sale lines
 
 - `larder-sales` asks the import to answer `{ "tickets": <count>, "dishes": <count> }` without saying whether `dishes` counts the sale lines or the portions (`qty`). The check accepted only portions. Both are now accepted (`test/larder-long.test.mjs`). Every past run was regraded: 2026-11-19 Fable and 2026-10-30 Sonnet move from Dumb to Smart; 2026-10-31 Opus moves from Dumb to Meh (over its time budget). No other score changed.
