@@ -237,6 +237,9 @@ test("larder-sales: reference solution; without the variance docs it is partly d
   // "dishes" may count the sale lines instead of the portions (Fable, 11-19).
   const lines = edit("src/domain/sales.js", "dishes: fresh.reduce((s, r) => s + r.qty, 0) };", "dishes: fresh.length };");
   assert.equal((await check("larder-sales", ...routes, lines, ...docs)).ok, true);
+  // The report is /reports/variance, so the field may be called variance (Fable, 11-20).
+  const asVariance = edit("src/domain/sales.js", "return { itemId, theoretical: t, actual: a, diff: round(a - t) };", "return { itemId, theoretical: t, actual: a, variance: round(a - t) };");
+  assert.equal((await check("larder-sales", ...routes, asVariance, ...docs)).ok, true);
   const bare = await check("larder-sales", ...routes);
   assert.equal(bare.partial, true);
   assert.match(bare.why, /readme|changelog/);
