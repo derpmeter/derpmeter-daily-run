@@ -116,7 +116,7 @@ Time per chore depends on this machine and on these plans' limits, so compare ti
 
 ## What is recorded
 
-For every run, `results/<run>/<agent>/<model>[@effort]/<chore>.json` holds the vote and why, the report, the check, the changed files, the diff, the prompt, the CLI version, the plan, tokens and quota. Local paths, user names and e-mail addresses are removed. `<run>` is the UTC start time (`2026-11-13-1830`); each run folder has a `README.md` with its scores.
+For every run, `results/<run>/<agent>/<model>[@effort]/<chore>.json` holds the vote and why, the report, the check, the changed files, the diff, the prompt, the CLI version, the plan, tokens and quota. The diff is cut at 50,000 characters; for Toonify chores a longer diff is also kept whole next to the result as `<chore>.diff.gz` (gzip), so the run can be regraded. Local paths, user names and e-mail addresses are removed. `<run>` is the UTC start time (`2026-11-13-1830`); each run folder has a `README.md` with its scores.
 
 - **Tokens:** input, output, cache read and write, and reasoning, as each CLI reports them.
 - **Quota:** percent used of the plan's 5-hour and weekly windows, before and after each run. Claude Code and Codex report whole percents, so one chore often shows no change.

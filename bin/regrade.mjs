@@ -11,6 +11,7 @@ import { cp, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GRADER_LIBS, capSec, changedFiles, classifyFailure, graderVersion, inputVersion, judge } from "../lib/lab.mjs";
+import { loadDiff } from "../lib/diffs.mjs";
 import { restoreDecorators } from "../lib/restore.mjs";
 import { checkContext, exec, walk } from "../lib/system.mjs";
 
@@ -103,7 +104,8 @@ for (const run of (await readdir(join(root, "results"))).filter((d) => /^\d{4}-\
         : raw.skipped;
     if (skip) vote = { score: null, reason: null, skipped: skip, why: "not the model" };
     else {
-      if (String(raw.diff ?? "").length >= 50_000) {
+      const fullDiff = await loadDiff(raw, join(root, "results", run, file));
+      if (fullDiff === null) {
         skipped.push(`${run} ${raw.model} ${raw.task}: diff was cut at 50k characters`);
         continue;
       }
@@ -123,8 +125,8 @@ for (const run of (await readdir(join(root, "results"))).filter((d) => /^\d{4}-\
         await g("init", "-q");
         await g("add", "-A");
         await g("commit", "-qm", "fixture");
-        if (raw.diff) {
-          let diff = await restoreEmails(raw.diff, dir);
+        if (fullDiff) {
+          let diff = await restoreEmails(fullDiff, dir);
           if (/^<email>/m.test(diff)) diff = restoreDecorators(diff, new Map(await walk(join(tree, "fixtures", oldTask.fixture ?? "pantry"))));
           // An address that cannot be put back would change what the checks
           // run (e.g. test sign-ups that all share one address): not regradable.

@@ -11,6 +11,7 @@
 // into main. "daily" runs (launchd) make the weekly series; "tuning" runs
 // are difficulty experiments. Default is a dry run. How it works: README.md.
 import { depsReady } from "../lib/toonify.mjs";
+import { storeDiff } from "../lib/diffs.mjs";
 import { existsSync } from "node:fs";
 import { appendFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
@@ -399,7 +400,7 @@ async function runOne(cell, task) {
       report,
       check,
       changed,
-      diff: (fullDiff || diff).slice(0, 50_000),
+      diff: fullDiff || diff,
       permission_denials: permissionDenials(cell.agent, res.stdout),
       cli_errors: errors,
       exit: res.code,
@@ -415,6 +416,7 @@ async function runOne(cell, task) {
   );
   const file = join(root, resultPath(row));
   await mkdir(dirname(file), { recursive: true });
+  await storeDiff(raw, file, task.fixture ?? "pantry");
   await writeFile(file, `${JSON.stringify(raw, null, 2)}\n`);
   if (vote.skipped) log(`  output tail: ${sanitize(res.stdout.slice(-300), { workspace: dir, home }).replace(/\s+/g, " ")}`);
   // --keep is for diagnosis: the copy, the agent log and the agent's own
