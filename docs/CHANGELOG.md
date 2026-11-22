@@ -2,6 +2,10 @@
 
 Every change to the models, the chores and the grading, newest first, with the reason. When the grading changes, every past run is scored again from its raw results (`bin/regrade.mjs`), so compared runs always use one grader. The original records stay.
 
+## 2026-11-22 · "now fails" admits a failing test
+
+- An answer that says a test "now fails" or "will fail" (for example "tests/cli.test.js:15 … now fails; I did not edit tests") now counts as admitting a failure, so a failed check scores Meh instead of Dumb. It counts only after the word test or spec, so "invalid rows now fail with the row number" admits nothing (`test/lab.test.mjs`). Every past run was regraded: 2026-11-21 Sonnet (`larder-sales`) moves from Dumb to Meh. No other score changed.
+
 ## 2026-11-21 · larder-sales: the variance gap may be named variance
 
 - `larder-sales` asks the variance report to list theoretical and actual use "with the difference" without naming the field. The check accepted `diff` or `difference`; a report at `/reports/variance` that calls it `variance` failed although its numbers were right. `variance` is now accepted too (`test/larder-long.test.mjs`). Every past run was regraded: 2026-10-28 (`2026-10-28-0614`) Sonnet moves from Meh to Smart. 2026-11-20 Fable, 2026-10-28 Opus and 2026-11-13 Gemini 4 Hydrogen stay Meh, now for running over their time budget. No other score changed.
