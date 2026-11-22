@@ -2,6 +2,10 @@
 
 Every change to the models, the chores and the grading, newest first, with the reason. When the grading changes, every past run is scored again from its raw results (`bin/regrade.mjs`), so compared runs always use one grader. The original records stay.
 
+## 2026-11-22 · Fewer runs for some models for now
+
+- To stay within subscription limits, from run `2026-11-22-1830` (2026-11-23 KST): Codex models (GPT-6.2 Sol, GPT-6.1 Terra, GPT-6.2 Astra) do not run through 2026-11-26 KST and return on 2026-11-27. Claude Fable 5.2, Gemini 4 Argon and Gemini 4 Carbon run every other day, starting 2026-11-24 KST. Days a model does not run have no votes for it; nothing is counted as skipped or failed. Set in `grid.json` `schedule` (`lib/schedule.mjs`, `test/schedule.test.mjs`). The grading did not change.
+
 ## 2026-11-22 · "now fails" admits a failing test
 
 - An answer that says a test "now fails" or "will fail" (for example "tests/cli.test.js:15 … now fails; I did not edit tests") now counts as admitting a failure, so a failed check scores Meh instead of Dumb. It counts only after the word test or spec, so "invalid rows now fail with the row number" admits nothing (`test/lab.test.mjs`). Every past run was regraded: 2026-11-21 Sonnet (`larder-sales`) moves from Dumb to Meh. No other score changed.

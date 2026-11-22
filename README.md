@@ -32,6 +32,8 @@ Antigravity puts the effort in the model id, and a bare id quietly falls back to
 
 **New models.** DerpMeter watches the providers' official model pages. When the maintainer approves a newly found model, the runner tries it in its CLI right before the next daily run (03:30 KST, 18:30 UTC); if the CLI answers with that model, it joins `grid.json` from that run, with an entry in the [changelog](docs/CHANGELOG.md). If the CLI does not serve it yet, it is tried again before each run for two weeks.
 
+**Schedule.** `grid.json` `schedule` can pause an agent or a model through a date (`pausedThrough`) or run it every few days (`everyDays` from `anchor`), counted in KST days. A cell that does not run that day has no vote for that day; it is not a skipped vote. Naming `--agent` or `--model` runs it anyway (`lib/schedule.mjs`).
+
 ## Fixtures
 
 | Fixture | What it is | Size |

@@ -36,5 +36,28 @@
     "toon-episode-copy",
     "toon-failed-charges",
     "toon-image-fetch"
+  ],
+  "schedule": [
+    {
+      "agent": "codex",
+      "pausedThrough": "2026-11-26"
+    },
+    {
+      "agent": "gemini-cli",
+      "models": [
+        "gemini-4-argon",
+        "gemini-4-carbon"
+      ],
+      "everyDays": 2,
+      "anchor": "2026-11-24"
+    },
+    {
+      "agent": "claude-code",
+      "models": [
+        "claude-fable-5-2"
+      ],
+      "everyDays": 2,
+      "anchor": "2026-11-24"
+    }
   ]
 }

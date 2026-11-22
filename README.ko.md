@@ -34,6 +34,8 @@ Antigravity는 모델 id에 effort가 들어 있고, effort 없는 id는 사용�
 
 **새 모델.** DerpMeter는 각 회사의 공식 모델 페이지를 감시합니다. 새로 찾은 모델을 관리자가 승인하면, 러너가 다음 daily 실행(03:30 KST, 18:30 UTC) 직전에 그 모델을 CLI로 시험합니다. CLI가 그 모델로 답하면 그 실행부터 `grid.json`에 들어가고 [변경 기록](docs/CHANGELOG.md)에 남습니다. CLI가 아직 지원하지 않으면 2주 동안 매 실행 전에 다시 시험합니다.
 
+**일정.** `grid.json`의 `schedule`로 에이전트나 모델을 어떤 날짜까지 쉬게 하거나(`pausedThrough`), `anchor`부터 며칠에 한 번만 돌릴 수 있습니다(`everyDays`). 날짜는 KST 기준입니다. 그날 돌지 않는 칸은 그날 투표가 없을 뿐, 건너뛴(skipped) 투표가 아닙니다. `--agent`나 `--model`로 지정하면 일정과 상관없이 돕니다(`lib/schedule.mjs`).
+
 ## 픽스처
 
 | 픽스처 | 내용 | 규모 |

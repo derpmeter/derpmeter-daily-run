@@ -12,6 +12,7 @@
 // are difficulty experiments. Default is a dry run. How it works: README.md.
 import { depsReady } from "../lib/toonify.mjs";
 import { storeDiff } from "../lib/diffs.mjs";
+import { kstDay, scheduledOut } from "../lib/schedule.mjs";
 import { existsSync } from "node:fs";
 import { appendFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
@@ -116,6 +117,16 @@ const grid = JSON.parse(await readFile(join(root, "grid.json"), "utf8"));
 let cells = buildGrid(grid).filter(
   (c) => (!only.agent || only.agent.includes(c.agent)) && (!only.model || only.model.includes(c.model)),
 );
+// grid.json "schedule" pauses or spaces out some cells (lib/schedule.mjs);
+// naming an agent or model, or adding to a past run, runs it anyway.
+if (!only.agent && !only.model && !into) {
+  const today = kstDay(started);
+  cells = cells.filter((c) => {
+    const why = scheduledOut(grid.schedule, c, today);
+    if (why) log(`${c.agent} ${modelId(c)}: not today (${why})`);
+    return !why;
+  });
+}
 // --task picks chores; otherwise the daily set in grid.json (all if none).
 const runTasks = tasks.filter((t) =>
   only.task ? only.task.includes(t.id) : !grid.tasks || grid.tasks.includes(t.id),
