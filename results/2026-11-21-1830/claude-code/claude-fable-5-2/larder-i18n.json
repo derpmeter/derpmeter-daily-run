@@ -1,0 +1,63 @@
+{
+  "run": "2026-11-21-1830",
+  "kind": "daily",
+  "day": "2026-11-21",
+  "agent": "claude-code",
+  "model": "claude-fable-5-2",
+  "effort": "",
+  "task": "larder-i18n",
+  "task_version": "2f3c768e",
+  "cli_version": "2.1.330",
+  "plan": "max",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 54714,
+  "tokens_input": 208504,
+  "tokens_output": 5441,
+  "tokens_cache_read": 179446,
+  "tokens_cache_write": 29046,
+  "tokens_reasoning": 1476,
+  "quota_5h_before": 25,
+  "quota_5h_after": 26,
+  "quota_week_before": 62,
+  "quota_week_after": 63,
+  "quota_confidence": "ok",
+  "why": "55s over 53s",
+  "grader": "078c4d67",
+  "verdict": "meh",
+  "model_id": "claude-fable-5-2",
+  "prompt": "Answer in the client's language: choose it from the request's `Accept-Language` header (`ko` or `en`, honoring q-values and region tags such as `ko-KR`; anything else falls back to `LARDER_LANG`), and give every error code a Korean message.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Error responses now follow the request's `Accept-Language` header (`ko` or `en`, with q-values and region tags; anything else falls back to `LARDER_LANG`), and all 10 error codes have a Korean message. `npm test` and `npm run lint` pass, and I checked the negotiation and the Korean responses with an ad hoc script; I added no tests, since the task did not ask for them.\n\nThree things still come out in English in a Korean response:\n- The `{reason}` inside `bad_request` (e.g. \"name is required\"), because those reasons are free text written at about 30 call sites.\n- The 500 \"Something went wrong.\" message, because `internal` is not a code in `src/errors.js`.\n- Item names and units inside `not_enough_stock`, which are shown as stored.\n\nBeyond the literal request, I translated the order states and actions inside the Korean `order_state` message, so it does not mix English words like \"cancelled\" into a Korean sentence.\n\nOn ties, the first language listed wins; `q=0` rules a language out, and an entry with a malformed q-value is ignored.",
+    "changed": [
+      "src/http/language.js",
+      "src/http/server.js",
+      "src/i18n/messages.js",
+      "docs/API.md",
+      "CHANGELOG.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "language negotiation and every message in Korean"
+  },
+  "changed": [
+    "CHANGELOG.md",
+    "docs/API.md",
+    "src/http/language.js",
+    "src/http/server.js",
+    "src/i18n/messages.js"
+  ],
+  "diff": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex bb2dd6d..f347ae6 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -3,6 +3,9 @@\n ## Unreleased\n \n - Show stock on hand in `GET /items`.\n+- Error messages follow the request's `Accept-Language` header (`ko` or `en`,\n+  with q-values and region tags); other languages get `LARDER_LANG`.\n+- Every error code has a Korean message.\n \n ## 2.3.0 - 2026-10-20\n \ndiff --git a/docs/API.md b/docs/API.md\nindex e70cef4..4a76172 100644\n--- a/docs/API.md\n+++ b/docs/API.md\n@@ -14,4 +14,10 @@ language.\n ## Languages\n \n Messages exist in English (`en`) and Korean (`ko`), in\n-`src/i18n/messages.js`. The server answers in `LARDER_LANG` (default `en`).\n+`src/i18n/messages.js`; every error code has a message in both.\n+\n+The server answers in the language the request's `Accept-Language` header\n+prefers: the supported language with the highest q-value (the first one\n+listed wins a tie; `q=0` rules a language out). Region tags are ignored, so\n+`ko-KR` is `ko` and `en-GB` is `en`. Without the header, or when it names no\n+supported language, the server answers in `LARDER_LANG` (default `en`).\ndiff --git a/src/http/language.js b/src/http/language.js\nnew file mode 100644\nindex 0000000..87b3ed9\n--- /dev/null\n+++ b/src/http/language.js\n@@ -0,0 +1,34 @@\n+// Picks the language of a response from the request's Accept-Language header.\n+import { LANGUAGES } from \"../i18n/messages.js\";\n+\n+function headerValue(headers, name) {\n+  for (const [k, v] of Object.entries(headers ?? {})) {\n+    if (k.toLowerCase() === name) return Array.isArray(v) ? v.join(\",\") : v;\n+  }\n+  return undefined;\n+}\n+\n+/** The supported language the request prefers (highest q first, region tags ignored), else `fallback`. */\n+export function requestLanguage(headers, fallback) {\n+  const header = headerValue(headers, \"accept-language\");\n+  if (typeof header !== \"string\") return fallback;\n+  let best = null;\n+  let bestQ = 0;\n+  for (const part of header.split(\",\")) {\n+    const [range, ...rest] = part.split(\";\").map((s) => s.trim());\n+    const lang = range.toLowerCase().split(\"-\")[0];\n+    if (!LANGUAGES.includes(lang)) continue;\n+    let q = 1;\n+    const qParam = rest.find((p) => /^q\\s*=/i.test(p));\n+    if (qParam !== undefined) {\n+      const raw = qParam.slice(qParam.indexOf(\"=\") + 1).trim();\n+      if (!/^(0(\\.\\d{0,3})?|1(\\.0{0,3})?)$/.test(raw)) continue;\n+      q = Number(raw);\n+    }\n+    if (q > bestQ) {\n+      best = lang;\n+      bestQ = q;\n+    }\n+  }\n+  return best ?? fallback;\n+}\ndiff --git a/src/http/server.js b/src/http/server.js\nindex 6de2085..75bcd5e 100644\n--- a/src/http/server.js\n+++ b/src/http/server.js\n@@ -8,6 +8,7 @@ import { log } from \"../log.js\";\n import { t } from \"../i18n/messages.js\";\n import { openStore } from \"../db/store.js\";\n import { router } from \"./router.js\";\n+import { requestLanguage } from \"./language.js\";\n import { itemRoutes } from \"./routes/items.js\";\n import { batchRoutes } from \"./routes/batches.js\";\n import { orderRoutes } from \"./routes/orders.js\";\n@@ -21,7 +22,7 @@ const match = router([...itemRoutes, ...batchRoutes, ...orderRoutes, ...kitchenR\n export function createApp(store, { clock = () => Date.now() } = {}) {\n   return async function handle({ method = \"GET\", path, headers = {}, body = null }) {\n     const url = new URL(path, \"http://larder\");\n-    const lang = config.defaultLanguage;\n+    const lang = requestLanguage(headers, config.defaultLanguage);\n     try {\n       const found = match(method, url.pathname);\n       if (!found) throw new AppError(\"not_found\");\ndiff --git a/src/i18n/messages.js b/src/i18n/messages.js\nindex 8e32eef..2d3bb22 100644\n--- a/src/i18n/messages.js\n+++ b/src/i18n/messages.js\n@@ -1,5 +1,5 @@\n // Client-facing messages, per language. Every error code in src/errors.js\n-// has an English message; Korean is filled in where translated.\n+// has a message in every language.\n const MESSAGES = {\n   en: {\n     not_found: \"No such route.\",\n@@ -15,7 +15,26 @@ const MESSAGES = {\n   },\n   ko: {\n     not_found: \"없는 경로입니다.\",\n+    bad_request: \"요청이 올바르지 않습니다: {reason}.\",\n+    invalid_qty: \"수량은 0보다 큰 숫자여야 합니다.\",\n+    invalid_date: \"날짜는 YYYY-MM-DD 형식으로 적습니다.\",\n     unknown_item: \"{id}번 품목이 없습니다.\",\n+    unknown_batch: \"{id}번 배치가 없습니다.\",\n+    unknown_location: \"{id} 위치가 없습니다.\",\n+    unknown_supplier: \"{id}번 공급업체가 없습니다.\",\n+    not_enough_stock: \"{item} 재고가 {available} {unit}만 남았습니다.\",\n+    order_state: \"{id}번 주문은 {state} 상태라서 {action} 처리할 수 없습니다.\",\n+  },\n+};\n+\n+// Translations of fixed parameter values (order states and actions), per\n+// language, message key and parameter. Values not listed are shown as given.\n+const TERMS = {\n+  ko: {\n+    order_state: {\n+      state: { draft: \"작성 중\", sent: \"발주됨\", received: \"입고됨\", cancelled: \"취소됨\" },\n+      action: { sent: \"발주\", received: \"입고\", cancelled: \"취소\" },\n+    },\n   },\n };\n \n@@ -25,7 +44,13 @@ export const LANGUAGES = Object.keys(MESSAGES);\n /** The message for `key` in `lang` (falling back to English), with {params} filled in. */\n export function t(key, lang = \"en\", params = {}) {\n   const text = MESSAGES[lang]?.[key] ?? MESSAGES.en[key] ?? key;\n-  return text.replace(/\\{(\\w+)\\}/g, (_, k) => (k in params ? String(params[k]) : `{${k}}`));\n+  const terms = MESSAGES[lang]?.[key] === undefined ? undefined : TERMS[lang]?.[key];\n+  return text.replace(/\\{(\\w+)\\}/g, (_, k) => {\n+    if (!(k in params)) return `{${k}}`;\n+    const value = String(params[k]);\n+    const known = terms?.[k];\n+    return known && Object.hasOwn(known, value) ? known[value] : value;\n+  });\n }\n \n /** Message keys per language, for checks. */\n",
+  "permission_denials": [],
+  "cli_errors": "",
+  "exit": 0,
+  "timed_out": false,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": true,
+  "runner_started": "2026-11-21T18:30:05.876Z",
+  "runner_commit": "bbeb3a9"
+}
