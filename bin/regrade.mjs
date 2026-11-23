@@ -10,7 +10,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { cp, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { GRADER_LIBS, capSec, changedFiles, classifyFailure, graderVersion, inputVersion, judge } from "../lib/lab.mjs";
+import { pastHardCap } from "../lib/stall.mjs";
+import { GRADER_LIBS, changedFiles, classifyFailure, graderVersion, inputVersion, judge } from "../lib/lab.mjs";
 import { loadDiff } from "../lib/diffs.mjs";
 import { restoreDecorators } from "../lib/restore.mjs";
 import { checkContext, exec, walk } from "../lib/system.mjs";
@@ -97,7 +98,7 @@ for (const run of (await readdir(join(root, "results"))).filter((d) => /^\d{4}-\
     let sameInput = null;
     // Runs since 10-29 keep the CLI's own errors: classify them again. Older
     // runs keep their skip as recorded (a wrong model is always a crash).
-    const timedOut = Boolean(raw.timed_out) || raw.duration_ms >= capSec(task) * 1000;
+    const timedOut = pastHardCap(raw, task);
     const skip =
       typeof raw.cli_errors === "string" && raw.skipped !== "crash"
         ? classifyFailure({ code: raw.exit, output: raw.cli_errors, report: raw.report ?? null, timedOut })

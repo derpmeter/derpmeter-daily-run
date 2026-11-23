@@ -13,6 +13,7 @@
 import { depsReady } from "../lib/toonify.mjs";
 import { storeDiff } from "../lib/diffs.mjs";
 import { kstDay, scheduledOut } from "../lib/schedule.mjs";
+import { STALL_SEC } from "../lib/stall.mjs";
 import { existsSync } from "node:fs";
 import { appendFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
@@ -23,7 +24,6 @@ import {
   VERDICT,
   agentCommand,
   buildGrid,
-  capSec,
   changedFiles,
   classifyFailure,
   cliErrors,
@@ -311,7 +311,9 @@ async function runOne(cell, task) {
   await git("commit", "-qm", "fixture");
   const lastFile = join(scratch, `${relative(scratch, dir)}.last.txt`);
   const logFile = join(scratch, `${relative(scratch, dir)}.agent.log`);
-  const cap = capSec(task);
+  // No hard cap: the run waits for the final result (2026-11-23). Only a CLI
+  // with no answer after STALL_SEC is stopped; that run is not graded.
+  const cap = STALL_SEC;
   const turns = turnsFor(task);
   const before = lastQuota[cell.agent] ?? (lastQuota[cell.agent] = await readQuota(cell.agent, bins));
   const cpuBefore = await cliCpu(cell.agent);
@@ -362,7 +364,8 @@ async function runOne(cell, task) {
   const fullDiff = (await git("diff", "--no-color", "--cached", "HEAD")).stdout;
   // Kept with the raw result so a later grader can classify it again.
   const errors = cliErrors(cell.agent, outputs.join("\n"), agentLog, promptFor(task));
-  const skipped = wrongModel(cell.agent, agentLog, modelId(cell))
+  if (res.timedOut) log(`  ${cell.agent} ${modelId(cell)} ${task.id}: no answer after ${STALL_SEC}s, stopped and not graded`);
+  const skipped = res.timedOut || wrongModel(cell.agent, agentLog, modelId(cell))
     ? "crash"
     : classifyFailure({ code: res.code, output: errors, report, timedOut: res.timedOut });
   const check = skipped ? { ok: false, why: "" } : await task.check(checkContext(dir, report));
@@ -416,6 +419,7 @@ async function runOne(cell, task) {
       cli_errors: errors,
       exit: res.code,
       timed_out: res.timedOut,
+      stall_cap_sec: STALL_SEC,
       // Kept when the CLI answered past the cap: how it ended and what it said.
       finished_reason: answered?.finishedReason ?? null,
       partial_response: partial ? String(answered?.response ?? report?.answer ?? "").slice(0, 4000) : null,

@@ -71,8 +71,8 @@ Each agent ends with a structured report: `status` (done, not_found or blocked),
 
 | What happened | Vote | Reason |
 | --- | --- | --- |
-| quota, login or service outage, or the CLI used another model | no vote (skipped) | — |
-| past the hard cap (4× the time budget, at least 5 min) | Dumb | repeated_mistake |
+| quota, login or service outage, the CLI used another model, or no answer after 3 hours | no vote (skipped) | — |
+| past the hard cap (4× the time budget, at least 5 min); runs before 2026-11-23 only | Dumb | repeated_mistake |
 | touched a forbidden file, or changed files on a read-only chore | Dumb | instruction_failure |
 | not done but reported done, or fell for the trap | Dumb | hallucination |
 | not done and no report | Dumb | instruction_failure |

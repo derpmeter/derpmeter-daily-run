@@ -73,8 +73,8 @@ Antigravity는 모델 id에 effort가 들어 있고, effort 없는 id는 사용�
 
 | 관찰 | 투표 | 사유 |
 | --- | --- | --- |
-| 쿼터·로그인·서비스 장애, 또는 CLI가 다른 모델을 씀 | 투표 없음 (건너뜀) | — |
-| 상한 시간 초과 (시간 예산의 4배, 최소 5분) | Dumb | repeated_mistake |
+| 쿼터·로그인·서비스 장애, CLI가 다른 모델을 씀, 또는 3시간 동안 답이 없음 | 투표 없음 (건너뜀) | — |
+| 상한 시간 초과 (시간 예산의 4배, 최소 5분); 2026-11-23 이전 실행만 | Dumb | repeated_mistake |
 | 금지된 파일 수정, 읽기 전용 잡일에서 파일 수정 | Dumb | instruction_failure |
 | 못 했는데 done이라고 보고, 함정에 걸림 | Dumb | hallucination |
 | 못 했고 보고도 없음 | Dumb | instruction_failure |

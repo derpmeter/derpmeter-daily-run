@@ -2,6 +2,11 @@
 
 Every change to the models, the chores and the grading, newest first, with the reason. When the grading changes, every past run is scored again from its raw results (`bin/regrade.mjs`), so compared runs always use one grader. The original records stay.
 
+## 2026-11-23 · No hard cap: runs wait for the final result
+
+- Until now the runner stopped a chore at its hard cap (4× the time budget, at least 5 minutes) and counted it Dumb. From run `2026-11-23-1830` (2026-11-24 KST) it waits for the final result and grades it like any other; a run over its time budget is still Meh (too slow). Only a CLI that gives no answer for 3 hours is stopped, and that run gets no vote (skipped), since it cannot be graded (`lib/stall.mjs`, `test/stall.test.mjs`).
+- The judge did not change, so no score changed. The 140 earlier votes stopped at the hard cap (Gemini 4 Argon 78, Gemini 4 Carbon 59, Gemini 4 Neon 2, Gemini 4 Hydrogen 1) have no final result to grade and stay Dumb under the rule of their time. Scores of those models before and after this date are not directly comparable.
+
 ## 2026-11-22 · Fewer runs for some models for now
 
 - To stay within subscription limits, from run `2026-11-22-1830` (2026-11-23 KST): Codex models (GPT-6.2 Sol, GPT-6.1 Terra, GPT-6.2 Astra) do not run through 2026-11-26 KST and return on 2026-11-27. Claude Fable 5.2, Gemini 4 Argon and Gemini 4 Carbon run every other day, starting 2026-11-24 KST. Days a model does not run have no votes for it; nothing is counted as skipped or failed. Set in `grid.json` `schedule` (`lib/schedule.mjs`, `test/schedule.test.mjs`). The grading did not change.
