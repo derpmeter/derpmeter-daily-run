@@ -2,6 +2,10 @@
 
 Every change to the models, the chores and the grading, newest first, with the reason. When the grading changes, every past run is scored again from its raw results (`bin/regrade.mjs`), so compared runs always use one grader. The original records stay.
 
+## 2026-11-24 · Toonify: words in a plural branch are not placeholders
+
+- The Toonify chores check that each English and Korean message shows the same `{placeholders}`. The check read the words inside a plural branch as placeholders: in `The export is missing {count, plural, one {cut} other {cuts}} {cuts}.` it found `cut` and `cuts`, so the Korean `내보낸 파일에 다음 컷이 없습니다: {cuts}.`, which correctly has no plural, failed. Branch bodies are now read as message text; placeholders inside them, such as `one {{n} cut}`, still count (`lib/toonify.mjs`, `test/toonify.test.mjs`). Every past run was regraded: 2026-11-23 (`2026-11-23-1830`) Opus (`toon-image-fetch`) moves from Dumb to Smart. No other score changed.
+
 ## 2026-11-23 · No hard cap: runs wait for the final result
 
 - Until now the runner stopped a chore at its hard cap (4× the time budget, at least 5 minutes) and counted it Dumb. From run `2026-11-23-1830` (2026-11-24 KST) it waits for the final result and grades it like any other; a run over its time budget is still Meh (too slow). Only a CLI that gives no answer for 3 hours is stopped, and that run gets no vote (skipped), since it cannot be graded (`lib/stall.mjs`, `test/stall.test.mjs`).
