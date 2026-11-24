@@ -1,0 +1,60 @@
+{
+  "run": "2026-11-24-1830",
+  "kind": "daily",
+  "day": "2026-11-24",
+  "agent": "claude-code",
+  "model": "claude-opus-5-5",
+  "effort": "",
+  "task": "pymd-slug",
+  "task_version": "32e7cc8d",
+  "cli_version": "2.1.331",
+  "plan": "max",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 27810,
+  "tokens_input": 177953,
+  "tokens_output": 2339,
+  "tokens_cache_read": 163191,
+  "tokens_cache_write": 14748,
+  "tokens_reasoning": 342,
+  "quota_5h_before": null,
+  "quota_5h_after": null,
+  "quota_week_before": 15,
+  "quota_week_after": 15,
+  "quota_confidence": "ok",
+  "why": "slugify strips again on every path, with a regression test and changelog",
+  "grader": "0eda8e20",
+  "verdict": "smart",
+  "model_id": "claude-opus-5-5",
+  "prompt": "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "status": "done",
+    "answer": "Fixed: `slugify` in the toc extension removed the `!` but kept the space before it, and that space became the trailing dash. It now trims leading and trailing whitespace after removing punctuation, so `# Hello world !` gets the id `hello-world`. I added a regression test (it fails without the fix) and a changelog entry, and the full suite passes (1130 tests, 112 skipped).",
+    "changed": [
+      "markdown/extensions/toc.py",
+      "tests/test_syntax/extensions/test_toc.py",
+      "docs/changelog.md"
+    ]
+  },
+  "check": {
+    "ok": true,
+    "why": "slugify strips again on every path, with a regression test and changelog"
+  },
+  "changed": [
+    "docs/changelog.md",
+    "markdown/extensions/toc.py",
+    "tests/test_syntax/extensions/test_toc.py"
+  ],
+  "diff": "diff --git a/docs/changelog.md b/docs/changelog.md\nindex dcb6362..bd04e1b 100644\n--- a/docs/changelog.md\n+++ b/docs/changelog.md\n@@ -12,6 +12,14 @@ and this project adheres to the\n [Python Version Specification](https://packaging.python.org/en/latest/specifications/version-specifiers/).\n See the [Contributing Guide](contributing.md) for details.\n \n+## [Unreleased]\n+\n+### Fixed\n+\n+* In the `toc` extension, strip whitespace left over after punctuation is removed\n+  in `slugify`, so a heading such as `# Hello world !` no longer gets an `id` with\n+  a trailing separator (`hello-world-`).\n+\n ## [3.11.2] - 2026-10-19\n \n ### Fixed\ndiff --git a/markdown/extensions/toc.py b/markdown/extensions/toc.py\nindex 3cc6481..0681254 100644\n--- a/markdown/extensions/toc.py\n+++ b/markdown/extensions/toc.py\n@@ -41,7 +41,7 @@ def slugify(value: str, separator: str, unicode: bool = False) -> str:\n         # Replace Extended Latin characters with ASCII, i.e. `žlutý` => `zluty`\n         value = unicodedata.normalize('NFKD', value)\n         value = value.encode('ascii', 'ignore').decode('ascii')\n-    value = re.sub(r'[^\\w\\s-]', '', value).lower()\n+    value = re.sub(r'[^\\w\\s-]', '', value).strip().lower()\n     return re.sub(r'[{}\\s]+'.format(separator), separator, value)\n \n \ndiff --git a/tests/test_syntax/extensions/test_toc.py b/tests/test_syntax/extensions/test_toc.py\nindex 372ba09..e60db8f 100644\n--- a/tests/test_syntax/extensions/test_toc.py\n+++ b/tests/test_syntax/extensions/test_toc.py\n@@ -155,6 +155,23 @@ class TestTOC(TestCase):\n         self.assertEqual(md.toc, '')\n         self.assertEqual(md.toc_tokens, [])\n \n+    def testNoLeadingOrTrailingSeparatorInId(self):\n+        self.assertMarkdownRenders(\n+            self.dedent(\n+                '''\n+                # Hello world !\n+                # ! Hello world\n+                '''\n+            ),\n+            self.dedent(\n+                '''\n+                <h1 id=\"hello-world\">Hello world !</h1>\n+                <h1 id=\"hello-world_1\">! Hello world</h1>\n+                '''\n+            ),\n+            extensions=['toc']\n+        )\n+\n     def testUniqueIds(self):\n         self.assertMarkdownRenders(\n             self.dedent(\n",
+  "permission_denials": [],
+  "cli_errors": "",
+  "exit": 0,
+  "timed_out": false,
+  "stall_cap_sec": 10800,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": true,
+  "runner_started": "2026-11-24T18:30:05.744Z",
+  "runner_commit": "a3f7b10"
+}
