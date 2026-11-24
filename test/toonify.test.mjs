@@ -79,3 +79,13 @@ test("placeholders: values shown must match; plural selectors may differ", () =>
   assert.equal(same("{cuts}", "{cut}"), false);
   assert.equal(same("{count, plural, one {# cut} other {# cuts}}", "컷"), false);
 });
+
+test("placeholders: plural branch text is message text, not a placeholder", () => {
+  const same = (en, ko) => samePlaceholders({ en: new Map([["a", en]]), ko: new Map([["a", ko]]) });
+  const en = "The export is missing {count, plural, one {cut} other {cuts}} {cuts}.";
+  assert.equal(same(en, "내보낸 파일에 다음 컷이 없습니다: {cuts}."), true);
+  assert.equal(same(en, "내보낸 파일에 컷이 없습니다."), false);
+  assert.equal(same("{count, plural, one {{n} cut} other {{n} cuts}}", "{n}컷"), true);
+  assert.equal(same("{count, plural, one {{n} cut} other {{n} cuts}}", "컷"), false);
+  assert.equal(same("{kind, select, image {picture} other {file}} {name}", "{name}"), true);
+});
