@@ -1,0 +1,60 @@
+{
+  "run": "2026-11-25-1830",
+  "kind": "daily",
+  "day": "2026-11-25",
+  "agent": "gemini-cli",
+  "model": "gemini-4-carbon",
+  "effort": "high",
+  "task": "pymd-slug",
+  "task_version": "32e7cc8d",
+  "cli_version": "1.5.17",
+  "plan": "",
+  "score": 50,
+  "reason": "too_slow",
+  "skipped": null,
+  "duration_ms": 697835,
+  "tokens_input": 177960,
+  "tokens_output": 36397,
+  "tokens_cache_read": 2632747,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 29937,
+  "quota_5h_before": 39.808,
+  "quota_5h_after": 42.03,
+  "quota_week_before": 36.106,
+  "quota_week_after": 36.862,
+  "quota_confidence": "ok",
+  "why": "698s over 150s",
+  "grader": "0eda8e20",
+  "verdict": "meh",
+  "model_id": "gemini-4-carbon-high",
+  "prompt": "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Stripped whitespace after removing non-word characters in `toc.slugify` so headings with trailing or leading punctuation do not get trailing or leading separators, and added regression tests and a changelog entry.",
+    "changed": [
+      "markdown/extensions/toc.py",
+      "tests/test_syntax/extensions/test_toc.py",
+      "docs/changelog.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "slugify strips again on every path, with a regression test and changelog"
+  },
+  "changed": [
+    "docs/changelog.md",
+    "markdown/extensions/toc.py",
+    "tests/test_syntax/extensions/test_toc.py"
+  ],
+  "diff": "diff --git a/docs/changelog.md b/docs/changelog.md\nindex dcb6362..c8151ec 100644\n--- a/docs/changelog.md\n+++ b/docs/changelog.md\n@@ -12,6 +12,14 @@ and this project adheres to the\n [Python Version Specification](https://packaging.python.org/en/latest/specifications/version-specifiers/).\n See the [Contributing Guide](contributing.md) for details.\n \n+## [Unreleased]\n+\n+### Fixed\n+\n+* Strip leading and trailing whitespace after removing non-word characters in\n+  `toc` `slugify` so headings like `# Hello world !` do not get a trailing or\n+  leading separator in their generated ID.\n+\n ## [3.11.2] - 2026-10-19\n \n ### Fixed\ndiff --git a/markdown/extensions/toc.py b/markdown/extensions/toc.py\nindex 3cc6481..0681254 100644\n--- a/markdown/extensions/toc.py\n+++ b/markdown/extensions/toc.py\n@@ -41,7 +41,7 @@ def slugify(value: str, separator: str, unicode: bool = False) -> str:\n         # Replace Extended Latin characters with ASCII, i.e. `žlutý` => `zluty`\n         value = unicodedata.normalize('NFKD', value)\n         value = value.encode('ascii', 'ignore').decode('ascii')\n-    value = re.sub(r'[^\\w\\s-]', '', value).lower()\n+    value = re.sub(r'[^\\w\\s-]', '', value).strip().lower()\n     return re.sub(r'[{}\\s]+'.format(separator), separator, value)\n \n \ndiff --git a/tests/test_syntax/extensions/test_toc.py b/tests/test_syntax/extensions/test_toc.py\nindex 372ba09..f743ed5 100644\n--- a/tests/test_syntax/extensions/test_toc.py\n+++ b/tests/test_syntax/extensions/test_toc.py\n@@ -21,7 +21,7 @@ License: BSD (see LICENSE.md for details).\n \n from markdown.test_tools import TestCase\n from markdown import Markdown\n-from markdown.extensions.toc import TocExtension, strip_tags, unique\n+from markdown.extensions.toc import TocExtension, slugify, strip_tags, unique\n from markdown.extensions.nl2br import Nl2BrExtension\n \n \n@@ -1409,6 +1409,78 @@ class TestTOC(TestCase):\n             extensions=[TocExtension(), 'footnotes']\n         )\n \n+    def test_trailing_and_leading_punctuation_in_id(self):\n+        self.assertMarkdownRenders(\n+            self.dedent(\n+                '''\n+                # Hello world !\n+                ## ! Hello world\n+                ### ! Hello world !\n+                #### Hello 世界\n+                ##### ! ?\n+                '''\n+            ),\n+            self.dedent(\n+                '''\n+                <h1 id=\"hello-world\">Hello world !</h1>\n+                <h2 id=\"hello-world_1\">! Hello world</h2>\n+                <h3 id=\"hello-world_2\">! Hello world !</h3>\n+                <h4 id=\"hello\">Hello 世界</h4>\n+                <h5 id=\"_1\">! ?</h5>\n+                '''\n+            ),\n+            expected_attrs={\n+                'toc': (\n+                    '<div class=\"toc\">\\n'\n+                      '<ul>\\n'                                                 # noqa\n+                        '<li><a href=\"#hello-world\">Hello world !</a>'         # noqa\n+                          '<ul>\\n'                                             # noqa\n+                            '<li><a href=\"#hello-world_1\">! Hello world</a>'   # noqa\n+                              '<ul>\\n'                                         # noqa\n+                                '<li><a href=\"#hello-world_2\">'                # noqa\n+                                  '! Hello world !</a>'                        # noqa\n+                                  '<ul>\\n'                                     # noqa\n+                                    '<li><a href=\"#hello\">Hello 世界</a>'      # noqa\n+                                      '<ul>\\n'                                 # noqa\n+                                        '<li><a href=\"#_1\">! ?</a></li>\\n'     # noqa\n+                                      '</ul>\\n'                                # noqa\n+                                    '</li>\\n'                                  # noqa\n+                                  '</ul>\\n'                                    # noqa\n+                                '</li>\\n'                                      # noqa\n+                              '</ul>\\n'                                        # noqa\n+                            '</li>\\n'                                          # noqa\n+                          '</ul>\\n'                                            # noqa\n+                        '</li>\\n'                                              # noqa\n+                      '</ul>\\n'                                                # noqa\n+                    '</div>\\n'                                                 # noqa\n+                )\n+            }\n+        )\n+\n+    def test_trailing_punctuation_unicode_and_separator(self):\n+        from markdown.extensions.toc import slugify_unicode\n+        self.assertMarkdownRenders(\n+            self.dedent(\n+                '''\n+                # Bonjour le monde !\n+                ## 안녕하세요 세계 ！\n+                '''\n+            ),\n+            self.dedent(\n+                '''\n+                <h1 id=\"bonjour-le-monde\">Bonjour le monde !</h1>\n+                <h2 id=\"안녕하세요-세계\">안녕하세요 세계 ！</h2>\n+                '''\n+            ),\n+            extensions=[TocExtension(slugify=slugify_unicode)]\n+        )\n+        self.assertMarkdownRenders(\n+            '# Hello world !',\n+            '<h1 id=\"hello_world\">Hello world !</h1>',\n+            extensions=[TocExtension(separator='_')]\n+        )\n+        self.assertEqual(slugify('  Hello world !  ', '-'), 'hello-world')\n+\n \n class testStripTags(TestCase):\n \n",
+  "permission_denials": [],
+  "cli_errors": "E1126 07:10:29.612624      43 client.go:148] Post \"https://play.googleapis.com/log\": read tcp 10.1.0.4:59161->172.217.118.4:443: read: connection reset by peer\nE1126 07:12:25.418270    5166 telemetry.go:142] error recording trajectory segment analytics: Post \"https://daily-cloudcode-pa.googleapis.com/v1internal:recordTrajectoryAnalytics\": context canceled",
+  "exit": 0,
+  "timed_out": false,
+  "stall_cap_sec": 10800,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": false,
+  "runner_started": "2026-11-25T18:30:04.811Z",
+  "runner_commit": "35c1244"
+}
