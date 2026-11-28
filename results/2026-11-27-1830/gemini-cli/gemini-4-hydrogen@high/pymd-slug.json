@@ -1,0 +1,60 @@
+{
+  "run": "2026-11-27-1830",
+  "kind": "daily",
+  "day": "2026-11-27",
+  "agent": "gemini-cli",
+  "model": "gemini-4-hydrogen",
+  "effort": "high",
+  "task": "pymd-slug",
+  "task_version": "32e7cc8d",
+  "cli_version": "1.5.18",
+  "plan": "",
+  "score": 0,
+  "reason": null,
+  "skipped": null,
+  "duration_ms": 126728,
+  "tokens_input": 96491,
+  "tokens_output": 17809,
+  "tokens_cache_read": 813372,
+  "tokens_cache_write": null,
+  "tokens_reasoning": 13946,
+  "quota_5h_before": 11.993,
+  "quota_5h_after": 11.993,
+  "quota_week_before": 23.253,
+  "quota_week_after": 23.253,
+  "quota_confidence": "ok",
+  "why": "slugify strips again on every path, with a regression test and changelog",
+  "grader": "0eda8e20",
+  "verdict": "smart",
+  "model_id": "gemini-4-hydrogen-high",
+  "prompt": "Bug report: with the `toc` extension, a heading like `# Hello world !` gets the id `hello-world-`, with a trailing dash. Fix it and add a regression test.\n\nWork on your own; nobody will answer questions. When you finish, report: status `done` if you did the task, `not_found` if something the task names does not exist, `blocked` if you could not do it; `answer` holds any answer the task asks for (otherwise one short sentence); `changed` lists the files you changed.",
+  "report": {
+    "answer": "Fixed `toc.slugify` to strip leading and trailing separator characters, added regression tests in `tests/test_syntax/extensions/test_toc.py`, and added a changelog entry.",
+    "changed": [
+      "markdown/extensions/toc.py",
+      "tests/test_syntax/extensions/test_toc.py",
+      "docs/changelog.md"
+    ],
+    "status": "done"
+  },
+  "check": {
+    "ok": true,
+    "why": "slugify strips again on every path, with a regression test and changelog"
+  },
+  "changed": [
+    "docs/changelog.md",
+    "markdown/extensions/toc.py",
+    "tests/test_syntax/extensions/test_toc.py"
+  ],
+  "diff": "diff --git a/docs/changelog.md b/docs/changelog.md\nindex dcb6362..c3bfa70 100644\n--- a/docs/changelog.md\n+++ b/docs/changelog.md\n@@ -12,6 +12,14 @@ and this project adheres to the\n [Python Version Specification](https://packaging.python.org/en/latest/specifications/version-specifiers/).\n See the [Contributing Guide](contributing.md) for details.\n \n+## [Unreleased]\n+\n+### Fixed\n+\n+* Strip leading and trailing separator characters in `toc.slugify` so\n+  headings with leading or trailing stripped punctuation and whitespace do not\n+  produce leading or trailing separators in generated IDs.\n+\n ## [3.11.2] - 2026-10-19\n \n ### Fixed\ndiff --git a/markdown/extensions/toc.py b/markdown/extensions/toc.py\nindex 3cc6481..a4a16da 100644\n--- a/markdown/extensions/toc.py\n+++ b/markdown/extensions/toc.py\n@@ -42,7 +42,7 @@ def slugify(value: str, separator: str, unicode: bool = False) -> str:\n         value = unicodedata.normalize('NFKD', value)\n         value = value.encode('ascii', 'ignore').decode('ascii')\n     value = re.sub(r'[^\\w\\s-]', '', value).lower()\n-    return re.sub(r'[{}\\s]+'.format(separator), separator, value)\n+    return re.sub(r'[{}\\s]+'.format(separator), separator, value).strip(separator)\n \n \n def slugify_unicode(value: str, separator: str) -> str:\ndiff --git a/tests/test_syntax/extensions/test_toc.py b/tests/test_syntax/extensions/test_toc.py\nindex 372ba09..0437a6e 100644\n--- a/tests/test_syntax/extensions/test_toc.py\n+++ b/tests/test_syntax/extensions/test_toc.py\n@@ -21,7 +21,7 @@ License: BSD (see LICENSE.md for details).\n \n from markdown.test_tools import TestCase\n from markdown import Markdown\n-from markdown.extensions.toc import TocExtension, strip_tags, unique\n+from markdown.extensions.toc import TocExtension, slugify, slugify_unicode, strip_tags, unique\n from markdown.extensions.nl2br import Nl2BrExtension\n \n \n@@ -1409,6 +1409,47 @@ class TestTOC(TestCase):\n             extensions=[TocExtension(), 'footnotes']\n         )\n \n+    def testHeadingTrailingAndLeadingSeparators(self):\n+        self.assertMarkdownRenders(\n+            self.dedent(\n+                '''\n+                [TOC]\n+\n+                # Hello world !\n+\n+                # ! Leading punctuation\n+\n+                # Trailing dash -\n+\n+                # ! !\n+                '''\n+            ),\n+            self.dedent(\n+                '''\n+                <div class=\"toc\">\n+                <ul>\n+                <li><a href=\"#hello-world\">Hello world !</a></li>\n+                <li><a href=\"#leading-punctuation\">! Leading punctuation</a></li>\n+                <li><a href=\"#trailing-dash\">Trailing dash -</a></li>\n+                <li><a href=\"#_1\">! !</a></li>\n+                </ul>\n+                </div>\n+                <h1 id=\"hello-world\">Hello world !</h1>\n+                <h1 id=\"leading-punctuation\">! Leading punctuation</h1>\n+                <h1 id=\"trailing-dash\">Trailing dash -</h1>\n+                <h1 id=\"_1\">! !</h1>\n+                '''\n+            ),\n+            extensions=['toc']\n+        )\n+\n+    def testSlugifyStripsSeparators(self):\n+        self.assertEqual(slugify('Hello world !', '-'), 'hello-world')\n+        self.assertEqual(slugify('! Hello world !', '-'), 'hello-world')\n+        self.assertEqual(slugify('Hello world !', '_'), 'hello_world')\n+        self.assertEqual(slugify_unicode('Unicode ヘッダー !', '-'), 'unicode-ヘッダー')\n+        self.assertEqual(slugify('! !', '-'), '')\n+\n \n class testStripTags(TestCase):\n \n",
+  "permission_denials": [],
+  "cli_errors": "E1128 09:34:58.637097    3386 telemetry.go:142] error recording trajectory segment analytics: Post \"https://daily-cloudcode-pa.googleapis.com/v1internal:recordTrajectoryAnalytics\": context canceled",
+  "exit": 0,
+  "timed_out": false,
+  "stall_cap_sec": 10800,
+  "finished_reason": null,
+  "partial_response": null,
+  "isolated": false,
+  "runner_started": "2026-11-27T18:30:06.011Z",
+  "runner_commit": "817a70b"
+}
